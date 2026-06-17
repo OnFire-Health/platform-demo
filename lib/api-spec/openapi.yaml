@@ -3,13 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: |
+    Platform Demo API — a multi-tenant Platform that hosts many independent
+    practitioners, each of whom connects their own OnFire Health partner account
+    via OAuth. The Platform lists each practitioner's rate cards, creates
+    invoices on their behalf, and receives invoice webhooks at one routed
+    receiver.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: session
+    description: Platform operator session
+  - name: connections
+    description: Connected practitioners (one OnFire connection each)
+  - name: invoices
+    description: Invoices created on behalf of practitioners
+  - name: webhooks
+    description: Received OnFire webhook events
+  - name: platform
+    description: Platform configuration and summary
 paths:
   /healthz:
     get:
@@ -24,7 +39,276 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /session:
+    get:
+      operationId: getSession
+      tags: [session]
+      summary: Current operator session
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+    post:
+      operationId: login
+      tags: [session]
+      summary: Operator login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OperatorCredentials"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: logout
+      tags: [session]
+      summary: Operator logout
+      responses:
+        "204":
+          description: Logged out
+
+  /platform/config:
+    get:
+      operationId: getPlatformConfig
+      tags: [platform]
+      summary: Platform OnFire configuration status
+      description: Reports whether OnFire env vars are configured and the callback/webhook URLs for OnFire ops to register.
+      responses:
+        "200":
+          description: Config status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformConfig"
+
+  /platform/summary:
+    get:
+      operationId: getPlatformSummary
+      tags: [platform]
+      summary: Dashboard summary counts
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSummary"
+
+  /connections:
+    get:
+      operationId: listConnections
+      tags: [connections]
+      summary: List connected practitioners
+      responses:
+        "200":
+          description: Connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Connection"
+
+  /connections/authorize:
+    post:
+      operationId: createAuthorizeUrl
+      tags: [connections]
+      summary: Begin connecting a practitioner
+      description: Generates and persists a CSRF state, then returns the OnFire authorize URL to redirect the practitioner to.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizeInput"
+      responses:
+        "200":
+          description: Authorize URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizeUrl"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}:
+    get:
+      operationId: getConnection
+      tags: [connections]
+      summary: Get a single connection
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}/disconnect:
+    post:
+      operationId: disconnectConnection
+      tags: [connections]
+      summary: Disconnect a practitioner
+      description: Revokes the OnFire token and marks the connection revoked.
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Revoked connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}/rate-cards:
+    get:
+      operationId: listRateCards
+      tags: [connections]
+      summary: List a practitioner's OnFire rate cards
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Rate cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RateCard"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Upstream OnFire error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}/invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List local invoice mirror for a practitioner
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create an invoice on behalf of a practitioner
+      description: Generates an external_invoice_ref idempotency key, posts to OnFire, and mirrors the result locally.
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceInput"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Upstream OnFire error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /webhook-events:
+    get:
+      operationId: listWebhookEvents
+      tags: [webhooks]
+      summary: Recent received webhook events
+      description: Most recent OnFire webhook events received at the single platform receiver, with the practitioner each was routed to.
+      responses:
+        "200":
+          description: Webhook events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WebhookEvent"
+
 components:
+  parameters:
+    ConnectionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Local connection id (uuid)
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +318,221 @@ components:
       required:
         - status
 
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SessionState:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+        operator:
+          type: ["string", "null"]
+
+    OperatorCredentials:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+
+    PlatformConfig:
+      type: object
+      required: [configured, redirectUri, webhookUrl, scopes, missing]
+      properties:
+        configured:
+          type: boolean
+        redirectUri:
+          type: string
+        webhookUrl:
+          type: string
+        scopes:
+          type: string
+        authorizeUrl:
+          type: ["string", "null"]
+        missing:
+          type: array
+          items:
+            type: string
+
+    PlatformSummary:
+      type: object
+      required:
+        - totalConnections
+        - activeConnections
+        - totalInvoices
+        - paidInvoices
+        - openInvoices
+        - webhookEvents
+      properties:
+        totalConnections:
+          type: integer
+        activeConnections:
+          type: integer
+        totalInvoices:
+          type: integer
+        paidInvoices:
+          type: integer
+        openInvoices:
+          type: integer
+        webhookEvents:
+          type: integer
+
+    Connection:
+      type: object
+      required:
+        - id
+        - partnerPublicId
+        - displayName
+        - status
+        - connectedAt
+      properties:
+        id:
+          type: string
+        partnerPublicId:
+          type: string
+        displayName:
+          type: string
+        orgId:
+          type: ["string", "null"]
+        scope:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: active | revoked
+        connectedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+
+    AuthorizeInput:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+
+    AuthorizeUrl:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+
+    RateCard:
+      type: object
+      required: [refId, name, active]
+      properties:
+        refId:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        amount:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    Invoice:
+      type: object
+      required:
+        - id
+        - connectionId
+        - externalInvoiceRef
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        externalInvoiceRef:
+          type: string
+        invoicePublicId:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        amount:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+        clientEmail:
+          type: ["string", "null"]
+        rateCardRefId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InvoiceInput:
+      type: object
+      required: [rateCardRefId, clientEmail]
+      properties:
+        rateCardRefId:
+          type: string
+          minLength: 1
+        clientEmail:
+          type: string
+          minLength: 1
+        clientFirstName:
+          type: string
+        clientLastName:
+          type: string
+        clientPhone:
+          type: string
+        clientBillingAddress:
+          type: string
+        externalClientRef:
+          type: string
+
+    WebhookEvent:
+      type: object
+      required:
+        - id
+        - envelopeId
+        - routed
+        - receivedAt
+      properties:
+        id:
+          type: string
+        envelopeId:
+          type: string
+        type:
+          type: ["string", "null"]
+        partnerPublicId:
+          type: ["string", "null"]
+        externalInvoiceRef:
+          type: ["string", "null"]
+        invoicePublicId:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        amount:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+        connectionId:
+          type: ["string", "null"]
+        connectionDisplayName:
+          type: ["string", "null"]
+        routed:
+          type: boolean
+        receivedAt:
+          type: string
+          format: date-time
