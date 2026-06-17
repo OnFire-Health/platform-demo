@@ -12,6 +12,11 @@ receiver.
  */
 
 export interface InvoiceInput {
+  /**
+     * Platform's own stable reference for this invoice, used as the OnFire idempotency key. Re-POSTing the same value returns the existing invoice instead of creating a duplicate. Generated server-side if omitted.
+     * @minLength 1
+     */
+  externalInvoiceRef?: string;
   /** @minLength 1 */
   rateCardRefId: string;
   /** @minLength 1 */

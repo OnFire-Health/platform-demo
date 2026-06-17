@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   db,
   connectionsTable,
@@ -159,9 +159,46 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
   }
   const input = parsed.data;
 
-  // Our id and the OnFire idempotency key. Stored before the upstream call so a
-  // retry with the same row reuses the same external_invoice_ref.
-  const externalInvoiceRef = `pd_${crypto.randomBytes(12).toString("hex")}`;
+  // external_invoice_ref is the OnFire idempotency key. The caller may supply a
+  // stable value so a re-POST is idempotent; otherwise we generate one.
+  const externalInvoiceRef =
+    input.externalInvoiceRef?.trim() || `pd_${crypto.randomBytes(12).toString("hex")}`;
+
+  // Claim the (connection_id, external_invoice_ref) pair locally BEFORE calling
+  // OnFire. The unique index makes this the idempotency gate: a re-POST with the
+  // same ref conflicts, so we return the existing invoice and never call OnFire
+  // (or create a duplicate) twice.
+  const claimed = await db
+    .insert(invoicesTable)
+    .values({
+      connectionId: connection.id,
+      externalInvoiceRef,
+      status: "pending",
+      clientEmail: input.clientEmail,
+      rateCardRefId: input.rateCardRefId,
+    })
+    .onConflictDoNothing({
+      target: [invoicesTable.connectionId, invoicesTable.externalInvoiceRef],
+    })
+    .returning();
+
+  if (claimed.length === 0) {
+    const existingRows = await db
+      .select()
+      .from(invoicesTable)
+      .where(
+        and(
+          eq(invoicesTable.connectionId, connection.id),
+          eq(invoicesTable.externalInvoiceRef, externalInvoiceRef),
+        ),
+      )
+      .limit(1);
+    req.log.info({ externalInvoiceRef }, "Idempotent invoice re-POST");
+    res.status(200).json(existingRows[0]);
+    return;
+  }
+
+  const claimedRow = claimed[0]!;
 
   const payload: Record<string, unknown> = {
     rate_card_ref_id: input.rateCardRefId,
@@ -182,26 +219,28 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
       body: JSON.stringify(payload),
     });
     if (!result.ok) {
+      // Release the claim so the operator can retry cleanly.
+      await db
+        .delete(invoicesTable)
+        .where(eq(invoicesTable.id, claimedRow.id));
       req.log.warn({ status: result.status, data: result.data }, "OnFire invoice error");
       res.status(502).json({ error: "Failed to create invoice in OnFire" });
       return;
     }
     const mapped = mapInvoice(result.data);
     const [row] = await db
-      .insert(invoicesTable)
-      .values({
-        connectionId: connection.id,
-        externalInvoiceRef,
+      .update(invoicesTable)
+      .set({
         invoicePublicId: mapped.invoicePublicId,
         status: mapped.status ?? "open",
         amount: mapped.amount,
         currency: mapped.currency,
-        clientEmail: input.clientEmail,
-        rateCardRefId: input.rateCardRefId,
       })
+      .where(eq(invoicesTable.id, claimedRow.id))
       .returning();
-    res.status(201).json(row);
+    res.status(201).json(row ?? claimedRow);
   } catch (err) {
+    await db.delete(invoicesTable).where(eq(invoicesTable.id, claimedRow.id));
     req.log.error({ err }, "invoice creation failed");
     res.status(502).json({ error: "Failed to create invoice in OnFire" });
   }

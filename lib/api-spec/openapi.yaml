@@ -484,6 +484,14 @@ components:
       type: object
       required: [rateCardRefId, clientEmail]
       properties:
+        externalInvoiceRef:
+          type: string
+          minLength: 1
+          description: >-
+            Platform's own stable reference for this invoice, used as the OnFire
+            idempotency key. Re-POSTing the same value returns the existing
+            invoice instead of creating a duplicate. Generated server-side if
+            omitted.
         rateCardRefId:
           type: string
           minLength: 1

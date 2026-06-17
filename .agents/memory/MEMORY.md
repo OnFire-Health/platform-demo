@@ -1,0 +1,1 @@
+- [connect-pg-simple in bundled server](session-store-bundling.md) — `createTableIfMissing` silently no-ops in esbuild bundles; manage the session table via Drizzle instead.

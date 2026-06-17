@@ -125,7 +125,15 @@ export async function resolvePartnerPublicId(
     }
   }
 
-  if (orgId) return orgId;
+  if (orgId) {
+    logger.warn(
+      { orgId },
+      "Could not resolve partner_public_id from token claims or partner-info; " +
+        "falling back to org id. Invoice webhooks routed by partner_public_id " +
+        "may not match this connection.",
+    );
+    return orgId;
+  }
   throw new Error("Unable to resolve partner_public_id for connection");
 }
 

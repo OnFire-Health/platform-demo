@@ -198,7 +198,9 @@ export const CreateInvoiceParams = zod.object({
 
 
 
+
 export const CreateInvoiceBody = zod.object({
+  "externalInvoiceRef": zod.string().min(1).optional().describe('Platform\'s own stable reference for this invoice, used as the OnFire idempotency key. Re-POSTing the same value returns the existing invoice instead of creating a duplicate. Generated server-side if omitted.'),
   "rateCardRefId": zod.string().min(1),
   "clientEmail": zod.string().min(1),
   "clientFirstName": zod.string().optional(),
