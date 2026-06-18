@@ -10,6 +10,7 @@ receiver.
 
  * OpenAPI spec version: 0.1.0
  */
+import type { BillingAddress } from './billingAddress';
 
 export interface InvoiceInput {
   /**
@@ -21,9 +22,10 @@ export interface InvoiceInput {
   rateCardRefId: string;
   /** @minLength 1 */
   clientEmail: string;
-  clientFirstName?: string;
-  clientLastName?: string;
-  clientPhone?: string;
-  clientBillingAddress?: string;
+  /** @minLength 1 */
+  clientName: string;
+  /** @minLength 1 */
+  clientPhone: string;
+  clientBillingAddress: BillingAddress;
   externalClientRef?: string;
 }

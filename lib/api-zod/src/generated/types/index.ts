@@ -13,6 +13,7 @@ receiver.
 
 export * from './authorizeInput';
 export * from './authorizeUrl';
+export * from './billingAddress';
 export * from './connection';
 export * from './error';
 export * from './healthStatus';

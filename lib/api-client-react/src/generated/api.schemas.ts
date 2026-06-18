@@ -104,6 +104,19 @@ export interface Invoice {
   updatedAt: string;
 }
 
+export interface BillingAddress {
+  /** @minLength 1 */
+  line1: string;
+  line2?: string;
+  /** @minLength 1 */
+  city: string;
+  /** @minLength 1 */
+  state: string;
+  /** @minLength 1 */
+  postalCode: string;
+  country?: string;
+}
+
 export interface InvoiceInput {
   /**
      * Platform's own stable reference for this invoice, used as the OnFire idempotency key. Re-POSTing the same value returns the existing invoice instead of creating a duplicate. Generated server-side if omitted.
@@ -114,10 +127,11 @@ export interface InvoiceInput {
   rateCardRefId: string;
   /** @minLength 1 */
   clientEmail: string;
-  clientFirstName?: string;
-  clientLastName?: string;
-  clientPhone?: string;
-  clientBillingAddress?: string;
+  /** @minLength 1 */
+  clientName: string;
+  /** @minLength 1 */
+  clientPhone: string;
+  clientBillingAddress: BillingAddress;
   externalClientRef?: string;
 }
 
