@@ -482,7 +482,10 @@ components:
 
     InvoiceInput:
       type: object
-      required: [rateCardRefId, clientEmail]
+      # OnFire requires name, phone and a structured billing address on every invoice
+      # (PartnerInvoiceCreate is extra=forbid). Mirror that contract here.
+      required:
+        [rateCardRefId, clientEmail, clientName, clientPhone, clientBillingAddress]
       properties:
         externalInvoiceRef:
           type: string
@@ -498,15 +501,36 @@ components:
         clientEmail:
           type: string
           minLength: 1
-        clientFirstName:
+        clientName:
           type: string
-        clientLastName:
-          type: string
+          minLength: 1
         clientPhone:
           type: string
+          minLength: 1
         clientBillingAddress:
-          type: string
+          $ref: "#/components/schemas/BillingAddress"
         externalClientRef:
+          type: string
+
+    BillingAddress:
+      type: object
+      required: [line1, city, state, postalCode]
+      properties:
+        line1:
+          type: string
+          minLength: 1
+        line2:
+          type: string
+        city:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        postalCode:
+          type: string
+          minLength: 1
+        country:
           type: string
 
     WebhookEvent:
