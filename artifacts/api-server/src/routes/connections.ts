@@ -154,7 +154,10 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
   }
   const parsed = CreateInvoiceBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "rateCardRefId and clientEmail are required" });
+    res.status(400).json({
+      error:
+        "rateCardRefId, clientEmail, clientName, clientPhone and clientBillingAddress (line1, city, state, postalCode) are required",
+    });
     return;
   }
   const input = parsed.data;
@@ -200,16 +203,25 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
 
   const claimedRow = claimed[0]!;
 
+  // Map to the OnFire contract (PartnerInvoiceCreate, extra=forbid): ref_id (not
+  // rate_card_ref_id), single client_name, required phone + structured billing address
+  // with snake_case postal_code.
+  const addr = input.clientBillingAddress;
   const payload: Record<string, unknown> = {
-    rate_card_ref_id: input.rateCardRefId,
+    ref_id: input.rateCardRefId,
     client_email: input.clientEmail,
+    client_name: input.clientName,
+    client_phone: input.clientPhone,
+    client_billing_address: {
+      line1: addr.line1,
+      ...(addr.line2 ? { line2: addr.line2 } : {}),
+      city: addr.city,
+      state: addr.state,
+      postal_code: addr.postalCode,
+      ...(addr.country ? { country: addr.country } : {}),
+    },
     external_invoice_ref: externalInvoiceRef,
   };
-  if (input.clientFirstName) payload["client_first_name"] = input.clientFirstName;
-  if (input.clientLastName) payload["client_last_name"] = input.clientLastName;
-  if (input.clientPhone) payload["client_phone"] = input.clientPhone;
-  if (input.clientBillingAddress)
-    payload["client_billing_address"] = input.clientBillingAddress;
   if (input.externalClientRef)
     payload["external_client_ref"] = input.externalClientRef;
 

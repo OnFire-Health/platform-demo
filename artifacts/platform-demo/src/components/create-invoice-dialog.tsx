@@ -27,18 +27,48 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
   const [open, setOpen] = useState(false);
   const [rateCardRefId, setRateCardRefId] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [clientFirstName, setClientFirstName] = useState("");
-  const [clientLastName, setClientLastName] = useState("");
-  
+  // OnFire requires name, phone and a full billing address on every invoice.
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [stateVal, setStateVal] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("");
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createInvoice = useCreateInvoice();
 
-  const activeRateCards = rateCards.filter(rc => rc.active);
+  const activeRateCards = rateCards.filter((rc) => rc.active);
+
+  const isValid =
+    !!rateCardRefId &&
+    !!clientEmail.trim() &&
+    !!clientName.trim() &&
+    !!clientPhone.trim() &&
+    !!line1.trim() &&
+    !!city.trim() &&
+    !!stateVal.trim() &&
+    !!postalCode.trim();
+
+  const resetForm = () => {
+    setRateCardRefId("");
+    setClientEmail("");
+    setClientName("");
+    setClientPhone("");
+    setLine1("");
+    setLine2("");
+    setCity("");
+    setStateVal("");
+    setPostalCode("");
+    setCountry("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rateCardRefId || !clientEmail.trim()) return;
+    if (!isValid) return;
 
     createInvoice.mutate(
       {
@@ -46,25 +76,29 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
         data: {
           rateCardRefId,
           clientEmail: clientEmail.trim(),
-          clientFirstName: clientFirstName.trim() || undefined,
-          clientLastName: clientLastName.trim() || undefined,
-        }
+          clientName: clientName.trim(),
+          clientPhone: clientPhone.trim(),
+          clientBillingAddress: {
+            line1: line1.trim(),
+            line2: line2.trim() || undefined,
+            city: city.trim(),
+            state: stateVal.trim(),
+            postalCode: postalCode.trim(),
+            country: country.trim() || undefined,
+          },
+        },
       },
       {
         onSuccess: () => {
           toast({ title: "Invoice Created", description: "Successfully created an invoice on behalf of the practitioner." });
           queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey(connectionId) });
           setOpen(false);
-          // Reset form
-          setRateCardRefId("");
-          setClientEmail("");
-          setClientFirstName("");
-          setClientLastName("");
+          resetForm();
         },
         onError: () => {
           toast({ variant: "destructive", title: "Error", description: "Failed to create invoice." });
-        }
-      }
+        },
+      },
     );
   };
 
@@ -92,45 +126,51 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
                   <SelectValue placeholder="Select a rate card" />
                 </SelectTrigger>
                 <SelectContent>
-                  {activeRateCards.map(rc => (
+                  {activeRateCards.map((rc) => (
                     <SelectItem key={rc.refId} value={rc.refId}>
-                      {rc.name} {rc.amount && rc.currency ? `(${Number(rc.amount)/100} ${rc.currency})` : ''}
+                      {rc.name} {rc.amount && rc.currency ? `(${Number(rc.amount) / 100} ${rc.currency})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="clientEmail">Client Email</Label>
-              <Input
-                id="clientEmail"
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="patient@example.com"
-                required
-              />
+              <Input id="clientEmail" type="email" value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)} placeholder="patient@example.com" required />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="firstName">First Name (Optional)</Label>
-                <Input
-                  id="firstName"
-                  value={clientFirstName}
-                  onChange={(e) => setClientFirstName(e.target.value)}
-                  placeholder="Jane"
-                />
+                <Label htmlFor="clientName">Client Name</Label>
+                <Input id="clientName" value={clientName}
+                  onChange={(e) => setClientName(e.target.value)} placeholder="Jane Doe" required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="lastName">Last Name (Optional)</Label>
-                <Input
-                  id="lastName"
-                  value={clientLastName}
-                  onChange={(e) => setClientLastName(e.target.value)}
-                  placeholder="Doe"
-                />
+                <Label htmlFor="clientPhone">Client Phone</Label>
+                <Input id="clientPhone" value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)} placeholder="+15551234567" required />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="line1">Billing Address</Label>
+              <Input id="line1" value={line1} onChange={(e) => setLine1(e.target.value)}
+                placeholder="Address line 1" required />
+              <Input id="line2" value={line2} onChange={(e) => setLine2(e.target.value)}
+                placeholder="Address line 2 (optional)" />
+              <div className="grid grid-cols-2 gap-4">
+                <Input id="city" value={city} onChange={(e) => setCity(e.target.value)}
+                  placeholder="City" required />
+                <Input id="state" value={stateVal} onChange={(e) => setStateVal(e.target.value)}
+                  placeholder="State" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input id="postalCode" value={postalCode} onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="Postal code" required />
+                <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Country (optional)" />
               </div>
             </div>
           </div>
@@ -138,7 +178,7 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!rateCardRefId || !clientEmail.trim() || createInvoice.isPending}>
+            <Button type="submit" disabled={!isValid || createInvoice.isPending}>
               {createInvoice.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Create
             </Button>

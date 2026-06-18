@@ -47,7 +47,9 @@ export function getConfig(): OnFireConfig {
     authorizeUrl: process.env["ONFIRE_AUTHORIZE_URL"] ?? "",
     apiBase: trimTrailingSlash(process.env["ONFIRE_API_BASE"] ?? ""),
     webhookSigningSecret: process.env["ONFIRE_WEBHOOK_SIGNING_SECRET"] ?? "",
-    partnerInfoPath: process.env["ONFIRE_PARTNER_INFO_PATH"] || "/meta/partner/",
+    // OnFire's OAuth "current partner" endpoint — returns partner_public_id (the
+    // webhook routing key). apiBase already includes /api/v1.
+    partnerInfoPath: process.env["ONFIRE_PARTNER_INFO_PATH"] || "/meta/partners/me",
   };
 }
 

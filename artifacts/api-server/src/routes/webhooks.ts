@@ -12,8 +12,10 @@ import { requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
+// OnFire signs with this header (see onfire-core webhooks/delivery.py). req.get is
+// case-insensitive, so the exact casing here doesn't matter — only the name.
 const SIGNATURE_HEADER =
-  process.env["ONFIRE_WEBHOOK_SIGNATURE_HEADER"] || "onfire-signature";
+  process.env["ONFIRE_WEBHOOK_SIGNATURE_HEADER"] || "X-Onfire-Webhook-Signature";
 const TOLERANCE_SECONDS = 60 * 5;
 
 function parseSignatureHeader(header: string): { t?: string; v1?: string } {
