@@ -1,4 +1,5 @@
 import { useParams, Link } from "wouter";
+import { useState } from "react";
 import { 
   useGetConnection, 
   useListRateCards, 
@@ -7,12 +8,28 @@ import {
   getListConnectionsQueryKey,
   getGetConnectionQueryKey
 } from "@workspace/api-client-react";
+import type { RateCard } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateInvoiceDialog } from "@/components/create-invoice-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -44,7 +61,9 @@ export function ConnectionDetail() {
   const { data: connection, isLoading: isLoadingConn } = useGetConnection(id);
   const { data: rateCards, isLoading: isLoadingRates } = useListRateCards(id);
   const { data: invoices, isLoading: isLoadingInvoices } = useListInvoices(id);
-  
+
+  const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(null);
+
   const disconnect = useDisconnectConnection();
 
   const handleDisconnect = () => {
@@ -243,58 +262,140 @@ export function ConnectionDetail() {
               </TabsContent>
               
               <TabsContent value="ratecards" className="m-0 border-none outline-none">
-                <div className="divide-y divide-border">
-                  {isLoadingRates ? (
-                    Array.from({ length: 3 }).map((_, i) => (
+                {isLoadingRates ? (
+                  <div className="divide-y divide-border">
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="p-4 flex flex-col gap-2">
                         <Skeleton className="h-5 w-48" />
                         <Skeleton className="h-4 w-full" />
                       </div>
-                    ))
-                  ) : rateCards?.length === 0 ? (
-                    <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
-                      <CreditCard className="w-8 h-8 mb-3 opacity-20" />
-                      <p>No rate cards found in OnFire.</p>
-                      <p className="text-xs mt-1">Practitioner needs to create rate cards in their partner portal.</p>
-                    </div>
-                  ) : (
-                    rateCards?.map((rc) => (
-                      <div key={rc.refId} className="p-4 hover:bg-muted/30 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1.5">
+                    ))}
+                  </div>
+                ) : rateCards?.length === 0 ? (
+                  <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
+                    <CreditCard className="w-8 h-8 mb-3 opacity-20" />
+                    <p>No rate cards found in OnFire.</p>
+                    <p className="text-xs mt-1">Practitioner needs to create rate cards in their partner portal.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Product</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Full Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rateCards?.map((rc) => (
+                        <TableRow
+                          key={rc.refId}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedRateCard(rc)}
+                        >
+                          <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold">{rc.productName}</span>
-                              <Badge variant="outline" className="text-[10px] h-5">{rc.type}</Badge>
-                              {!rc.active && <Badge variant="secondary" className="text-[10px] h-5">INACTIVE</Badge>}
-                            </div>
-                            <div className="font-mono text-xs text-muted-foreground bg-muted inline-block px-1.5 py-0.5 rounded">
-                              {rc.refId}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{rc.company}</p>
-                            {(rc.subTitle || rc.details) && (
-                              <p className="text-sm text-muted-foreground mt-1 max-w-lg">{rc.subTitle ?? rc.details}</p>
-                            )}
-                          </div>
-                          {rc.fullPrice && (
-                            <div className="text-right shrink-0">
-                              <div className="font-semibold text-lg">${Number(rc.fullPrice).toFixed(2)}</div>
-                              {rc.installmentsPrice && !rc.fullPriceOnly && (
-                                <div className="text-xs text-muted-foreground">
-                                  or ${Number(rc.installmentsPrice).toFixed(2)}{rc.duration ? ` over ${rc.duration} mo` : ""}
-                                </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedRateCard(rc);
+                                }}
+                                className="font-medium text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                              >
+                                {rc.productName}
+                              </button>
+                              {!rc.active && (
+                                <Badge variant="secondary" className="text-[10px] h-5">INACTIVE</Badge>
                               )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                            <div className="text-xs text-muted-foreground">{rc.company}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] h-5">{rc.type}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatPrice(rc.fullPrice)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </TabsContent>
             </CardContent>
           </Tabs>
         </Card>
       </div>
+
+      <Sheet open={!!selectedRateCard} onOpenChange={(open) => !open && setSelectedRateCard(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          {selectedRateCard && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  {selectedRateCard.productName}
+                  {!selectedRateCard.active && (
+                    <Badge variant="secondary" className="text-[10px] h-5">INACTIVE</Badge>
+                  )}
+                </SheetTitle>
+                <SheetDescription>{selectedRateCard.company}</SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-5">
+                {formatPrice(selectedRateCard.fullPrice) !== "—" && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Full Price</div>
+                    <div className="text-2xl font-bold mt-0.5">{formatPrice(selectedRateCard.fullPrice)}</div>
+                    {formatPrice(selectedRateCard.installmentsPrice) !== "—" && !selectedRateCard.fullPriceOnly && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        or {formatPrice(selectedRateCard.installmentsPrice)}
+                        {selectedRateCard.duration ? ` over ${selectedRateCard.duration} mo` : ""}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <DetailRow label="Ref ID" value={selectedRateCard.refId} mono />
+                <DetailRow label="Type" value={selectedRateCard.type} />
+                <DetailRow label="Active" value={selectedRateCard.active ? "Yes" : "No"} />
+                <DetailRow
+                  label="Full Price Only"
+                  value={
+                    typeof selectedRateCard.fullPriceOnly === "boolean"
+                      ? selectedRateCard.fullPriceOnly
+                        ? "Yes"
+                        : "No"
+                      : undefined
+                  }
+                />
+                <DetailRow label="Duration" value={selectedRateCard.duration ?? undefined} />
+                <DetailRow label="Installments Price" value={selectedRateCard.installmentsPrice ?? undefined} />
+                <DetailRow label="Payout Plan" value={selectedRateCard.payoutPlan ?? undefined} />
+                <DetailRow label="Subtitle" value={selectedRateCard.subTitle ?? undefined} />
+                <DetailRow label="Details" value={selectedRateCard.details ?? undefined} />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function formatPrice(value?: string | null): string {
+  if (value === undefined || value === null || value === "") return "—";
+  const num = Number(value);
+  if (Number.isNaN(num)) return "—";
+  return `$${num.toFixed(2)}`;
+}
+
+function DetailRow({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+  if (value === undefined || value === null || value === "") return null;
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</div>
+      <div className={`text-sm ${mono ? "font-mono break-all" : ""}`}>{value}</div>
     </div>
   );
 }

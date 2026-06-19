@@ -154,10 +154,16 @@ export const ListRateCardsParams = zod.object({
 
 export const ListRateCardsResponseItem = zod.object({
   "refId": zod.string(),
-  "name": zod.string(),
-  "description": zod.string().nullish(),
-  "amount": zod.string().nullish(),
-  "currency": zod.string().nullish(),
+  "productName": zod.string(),
+  "company": zod.string(),
+  "type": zod.string().describe('bundle | addOn'),
+  "duration": zod.string().nullish(),
+  "fullPrice": zod.string().nullish().describe('Headline price in dollars.'),
+  "installmentsPrice": zod.string().nullish(),
+  "fullPriceOnly": zod.boolean().optional(),
+  "payoutPlan": zod.string().nullish(),
+  "subTitle": zod.string().nullish(),
+  "details": zod.string().nullish(),
   "active": zod.boolean()
 })
 export const ListRateCardsResponse = zod.array(ListRateCardsResponseItem)
