@@ -128,7 +128,7 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
                 <SelectContent>
                   {activeRateCards.map((rc) => (
                     <SelectItem key={rc.refId} value={rc.refId}>
-                      {rc.name} {rc.amount && rc.currency ? `(${Number(rc.amount) / 100} ${rc.currency})` : ""}
+                      {rc.productName} {rc.fullPrice ? `($${Number(rc.fullPrice).toFixed(2)})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

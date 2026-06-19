@@ -227,13 +227,21 @@ function str(value: unknown): string | null {
 
 export interface MappedRateCard {
   refId: string;
-  name: string;
-  description: string | null;
-  amount: string | null;
-  currency: string | null;
+  productName: string;
+  company: string;
+  type: string;
+  duration: string | null;
+  fullPrice: string | null;
+  installmentsPrice: string | null;
+  fullPriceOnly: boolean;
+  payoutPlan: string | null;
+  subTitle: string | null;
+  details: string | null;
   active: boolean;
 }
 
+// Maps onfire-core PartnerRateCardResponse (snake_case) -> the camelCase RateCard the
+// client expects. Prices are dollars; onfire sends no currency (defaults USD at invoice).
 export function mapRateCards(data: unknown): MappedRateCard[] {
   return asArray(data)
     .map((raw): MappedRateCard | null => {
@@ -245,10 +253,16 @@ export function mapRateCards(data: unknown): MappedRateCard[] {
       const active = r["active"] ?? r["is_active"];
       return {
         refId,
-        name: str(r["name"]) ?? str(r["title"]) ?? refId,
-        description: str(r["description"]),
-        amount: str(r["amount"]) ?? str(r["price"]) ?? str(r["unit_amount"]),
-        currency: str(r["currency"]),
+        productName: str(r["product_name"]) ?? str(r["name"]) ?? refId,
+        company: str(r["company"]) ?? "",
+        type: str(r["type"]) ?? "",
+        duration: str(r["duration"]),
+        fullPrice: str(r["full_price"]) ?? str(r["amount"]),
+        installmentsPrice: str(r["installments_price"]),
+        fullPriceOnly: Boolean(r["full_price_only"]),
+        payoutPlan: str(r["payout_plan"]),
+        subTitle: str(r["sub_title"]),
+        details: str(r["details"]) ?? str(r["item_description"]),
         active: active === undefined ? true : Boolean(active),
       };
     })
