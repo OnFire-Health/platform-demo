@@ -229,8 +229,8 @@ export function ConnectionDetail() {
                           </div>
                         </div>
                         <div className="text-right space-y-1">
-                          {invoice.amount && invoice.currency && (
-                            <div className="font-semibold">{Number(invoice.amount) / 100} <span className="text-xs text-muted-foreground uppercase">{invoice.currency}</span></div>
+                          {invoice.amount && (
+                            <div className="font-semibold">${Number(invoice.amount).toFixed(2)} <span className="text-xs text-muted-foreground uppercase">{invoice.currency ?? "USD"}</span></div>
                           )}
                           <div className="text-xs text-muted-foreground">
                             {format(new Date(invoice.createdAt), "MMM d, yyyy")}
@@ -263,19 +263,26 @@ export function ConnectionDetail() {
                         <div className="flex items-start justify-between">
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold">{rc.name}</span>
+                              <span className="font-semibold">{rc.productName}</span>
+                              <Badge variant="outline" className="text-[10px] h-5">{rc.type}</Badge>
                               {!rc.active && <Badge variant="secondary" className="text-[10px] h-5">INACTIVE</Badge>}
                             </div>
                             <div className="font-mono text-xs text-muted-foreground bg-muted inline-block px-1.5 py-0.5 rounded">
                               {rc.refId}
                             </div>
-                            {rc.description && (
-                              <p className="text-sm text-muted-foreground mt-1 max-w-lg">{rc.description}</p>
+                            <p className="text-xs text-muted-foreground">{rc.company}</p>
+                            {(rc.subTitle || rc.details) && (
+                              <p className="text-sm text-muted-foreground mt-1 max-w-lg">{rc.subTitle ?? rc.details}</p>
                             )}
                           </div>
-                          {rc.amount && rc.currency && (
-                            <div className="font-semibold text-lg shrink-0">
-                              {Number(rc.amount) / 100} <span className="text-sm text-muted-foreground font-normal uppercase">{rc.currency}</span>
+                          {rc.fullPrice && (
+                            <div className="text-right shrink-0">
+                              <div className="font-semibold text-lg">${Number(rc.fullPrice).toFixed(2)}</div>
+                              {rc.installmentsPrice && !rc.fullPriceOnly && (
+                                <div className="text-xs text-muted-foreground">
+                                  or ${Number(rc.installmentsPrice).toFixed(2)}{rc.duration ? ` over ${rc.duration} mo` : ""}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

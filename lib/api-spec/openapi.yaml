@@ -431,17 +431,34 @@ components:
 
     RateCard:
       type: object
-      required: [refId, name, active]
+      # Mirrors onfire-core PartnerRateCardResponse. Prices are in DOLLARS (not cents).
+      # OnFire does not return a currency on rate cards — it defaults to USD at invoice
+      # creation.
+      required: [refId, productName, company, type, active]
       properties:
         refId:
           type: string
-        name:
+        productName:
           type: string
-        description:
+        company:
+          type: string
+        type:
+          type: string
+          description: "bundle | addOn"
+        duration:
           type: ["string", "null"]
-        amount:
+        fullPrice:
           type: ["string", "null"]
-        currency:
+          description: "Headline price in dollars."
+        installmentsPrice:
+          type: ["string", "null"]
+        fullPriceOnly:
+          type: boolean
+        payoutPlan:
+          type: ["string", "null"]
+        subTitle:
+          type: ["string", "null"]
+        details:
           type: ["string", "null"]
         active:
           type: boolean
