@@ -90,7 +90,7 @@ export function Webhooks() {
                     )}
                     {event.status && (
                       <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        {event.status} {event.amount && event.currency ? `· ${Number(event.amount)/100} ${event.currency}` : ''}
+                        {event.status} {event.amount ? `· $${Number(event.amount).toFixed(2)} ${event.currency ?? "USD"}` : ''}
                       </span>
                     )}
                   </div>

@@ -229,8 +229,8 @@ export function ConnectionDetail() {
                           </div>
                         </div>
                         <div className="text-right space-y-1">
-                          {invoice.amount && invoice.currency && (
-                            <div className="font-semibold">{Number(invoice.amount) / 100} <span className="text-xs text-muted-foreground uppercase">{invoice.currency}</span></div>
+                          {invoice.amount && (
+                            <div className="font-semibold">${Number(invoice.amount).toFixed(2)} <span className="text-xs text-muted-foreground uppercase">{invoice.currency ?? "USD"}</span></div>
                           )}
                           <div className="text-xs text-muted-foreground">
                             {format(new Date(invoice.createdAt), "MMM d, yyyy")}
