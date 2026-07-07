@@ -275,6 +275,8 @@ export interface MappedInvoice {
   amount: string | null;
   currency: string | null;
   externalInvoiceRef: string | null;
+  clientEmail: string | null;
+  rateCardRefId: string | null;
 }
 
 export function mapInvoice(data: unknown): MappedInvoice {
@@ -289,6 +291,10 @@ export function mapInvoice(data: unknown): MappedInvoice {
     amount: str(r["amount"]) ?? str(r["total"]),
     currency: str(r["currency"]),
     externalInvoiceRef: str(r["external_invoice_ref"]),
+    clientEmail: str(r["client_email"]),
+    // OnFire returns the rate card's public ref as `rate_card_ref` on both POST and GET
+    // (stamped by attach_rate_card_names); mirror it into our rate_card_ref_id column.
+    rateCardRefId: str(r["rate_card_ref"]),
   };
 }
 
