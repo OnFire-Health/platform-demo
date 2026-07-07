@@ -230,6 +230,32 @@ export const CreateInvoiceBody = zod.object({
 
 
 /**
+ * Pulls the practitioner's invoices from OnFire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
+ * @summary Reconcile the local invoice mirror against OnFire
+ */
+export const ReconcileInvoicesParams = zod.object({
+  "id": zod.coerce.string().describe('Local connection id (uuid)')
+})
+
+export const ReconcileInvoicesResponse = zod.object({
+  "reconciled": zod.number().describe('Number of invoices upserted from OnFire into the local mirror.'),
+  "invoices": zod.array(zod.object({
+  "id": zod.string(),
+  "connectionId": zod.string(),
+  "externalInvoiceRef": zod.string(),
+  "invoicePublicId": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "amount": zod.string().nullish(),
+  "currency": zod.string().nullish(),
+  "clientEmail": zod.string().nullish(),
+  "rateCardRefId": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
  * Most recent OnFire webhook events received at the single platform receiver, with the practitioner each was routed to.
  * @summary Recent received webhook events
  */

@@ -36,6 +36,7 @@ import type {
   PlatformConfig,
   PlatformSummary,
   RateCard,
+  ReconcileResult,
   SessionState,
   WebhookEvent
 } from './api.schemas';
@@ -1025,6 +1026,77 @@ export const useCreateInvoice = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateInvoiceMutationOptions(options));
+    }
+
+export const getReconcileInvoicesUrl = (id: string,) => {
+
+
+
+
+  return `/api/connections/${id}/invoices/reconcile`
+}
+
+/**
+ * Pulls the practitioner's invoices from OnFire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
+ * @summary Reconcile the local invoice mirror against OnFire
+ */
+export const reconcileInvoices = async (id: string, options?: RequestInit): Promise<ReconcileResult> => {
+
+  return customFetch<ReconcileResult>(getReconcileInvoicesUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getReconcileInvoicesMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileInvoices>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reconcileInvoices>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['reconcileInvoices'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reconcileInvoices>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reconcileInvoices(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReconcileInvoicesMutationResult = NonNullable<Awaited<ReturnType<typeof reconcileInvoices>>>
+
+    export type ReconcileInvoicesMutationError = ErrorType<Error>
+
+    /**
+ * @summary Reconcile the local invoice mirror against OnFire
+ */
+export const useReconcileInvoices = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileInvoices>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reconcileInvoices>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getReconcileInvoicesMutationOptions(options));
     }
 
 export const getListWebhookEventsUrl = () => {

@@ -5,8 +5,10 @@ import {
   useListRateCards, 
   useListInvoices, 
   useDisconnectConnection,
+  useReconcileInvoices,
   getListConnectionsQueryKey,
-  getGetConnectionQueryKey
+  getGetConnectionQueryKey,
+  getListInvoicesQueryKey
 } from "@workspace/api-client-react";
 import type { RateCard } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,11 +35,12 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  ChevronLeft, 
-  Unplug, 
-  CreditCard, 
+  ChevronLeft,
+  Unplug,
+  CreditCard,
   FileText,
-  Activity
+  Activity,
+  RefreshCw
 } from "lucide-react";
 import {
   AlertDialog,
@@ -65,6 +68,22 @@ export function ConnectionDetail() {
   const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(null);
 
   const disconnect = useDisconnectConnection();
+  const reconcile = useReconcileInvoices();
+
+  const handleReconcile = () => {
+    reconcile.mutate({ id }, {
+      onSuccess: (result) => {
+        toast({
+          title: "Invoices reconciled",
+          description: `Synced ${result.reconciled} invoice${result.reconciled === 1 ? "" : "s"} from OnFire.`,
+        });
+        queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey(id) });
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "Error", description: "Failed to reconcile invoices from OnFire." });
+      }
+    });
+  };
 
   const handleDisconnect = () => {
     disconnect.mutate({ id }, {
@@ -203,11 +222,24 @@ export function ConnectionDetail() {
                   </TabsTrigger>
                 </TabsList>
                 
-                <CreateInvoiceDialog 
-                  connectionId={id} 
-                  rateCards={rateCards || []} 
-                  disabled={!isActive || isLoadingRates} 
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={handleReconcile}
+                    disabled={!isActive || reconcile.isPending}
+                    title="Pull invoices from OnFire and re-sync the local mirror"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${reconcile.isPending ? "animate-spin" : ""}`} />
+                    Reconcile
+                  </Button>
+                  <CreateInvoiceDialog
+                    connectionId={id}
+                    rateCards={rateCards || []}
+                    disabled={!isActive || isLoadingRates}
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">

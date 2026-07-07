@@ -284,6 +284,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /connections/{id}/invoices/reconcile:
+    post:
+      operationId: reconcileInvoices
+      tags: [invoices]
+      summary: Reconcile the local invoice mirror against OnFire
+      description: >-
+        Pulls the practitioner's invoices from OnFire (the source of truth) and upserts
+        each into the local mirror, keyed on external_invoice_ref. Use to re-converge the
+        mirror when a webhook delivery was missed.
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Reconcile result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconcileResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Upstream OnFire error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /webhook-events:
     get:
       operationId: listWebhookEvents
@@ -496,6 +533,20 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    ReconcileResult:
+      type: object
+      required:
+        - reconciled
+        - invoices
+      properties:
+        reconciled:
+          type: integer
+          description: Number of invoices upserted from OnFire into the local mirror.
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
 
     InvoiceInput:
       type: object

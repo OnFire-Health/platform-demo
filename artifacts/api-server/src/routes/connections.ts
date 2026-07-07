@@ -16,6 +16,7 @@ import {
   revokeToken,
   mapRateCards,
   mapInvoice,
+  fetchInvoices,
 } from "../lib/onfire";
 
 const router: IRouter = Router();
@@ -255,6 +256,65 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
     await db.delete(invoicesTable).where(eq(invoicesTable.id, claimedRow.id));
     req.log.error({ err }, "invoice creation failed");
     res.status(502).json({ error: "Failed to create invoice in OnFire" });
+  }
+});
+
+// Reconcile the local invoice mirror against OnFire (the source of truth). Webhook
+// delivery is at-least-once and can be missed; this pulls the current invoice set from
+// OnFire and upserts each row so the mirror re-converges. Matches on the
+// (connection_id, external_invoice_ref) unique key — the same key the create + webhook
+// paths write.
+router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res) => {
+  const connection = await loadConnection(String(req.params.id));
+  if (!connection) {
+    res.status(404).json({ error: "Connection not found" });
+    return;
+  }
+  if (connection.status !== "active") {
+    res.status(400).json({ error: "Connection is revoked" });
+    return;
+  }
+  try {
+    const result = await fetchInvoices(connection.id);
+    if (!result.ok) {
+      req.log.warn({ status: result.status }, "OnFire list-invoices error");
+      res.status(502).json({ error: "Failed to fetch invoices from OnFire" });
+      return;
+    }
+    let reconciled = 0;
+    for (const inv of result.invoices) {
+      // external_invoice_ref is the join key to our mirror; skip anything without it.
+      if (!inv.externalInvoiceRef) continue;
+      await db
+        .insert(invoicesTable)
+        .values({
+          connectionId: connection.id,
+          externalInvoiceRef: inv.externalInvoiceRef,
+          invoicePublicId: inv.invoicePublicId,
+          status: inv.status,
+          amount: inv.amount,
+          currency: inv.currency,
+        })
+        .onConflictDoUpdate({
+          target: [invoicesTable.connectionId, invoicesTable.externalInvoiceRef],
+          set: {
+            invoicePublicId: inv.invoicePublicId,
+            status: inv.status,
+            amount: inv.amount,
+            currency: inv.currency,
+          },
+        });
+      reconciled += 1;
+    }
+    const rows = await db
+      .select()
+      .from(invoicesTable)
+      .where(eq(invoicesTable.connectionId, connection.id))
+      .orderBy(desc(invoicesTable.createdAt));
+    res.json({ reconciled, invoices: rows });
+  } catch (err) {
+    req.log.error({ err }, "invoice reconcile failed");
+    res.status(502).json({ error: "Failed to reconcile invoices from OnFire" });
   }
 });
 

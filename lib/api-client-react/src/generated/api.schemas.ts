@@ -117,6 +117,12 @@ export interface Invoice {
   updatedAt: string;
 }
 
+export interface ReconcileResult {
+  /** Number of invoices upserted from OnFire into the local mirror. */
+  reconciled: number;
+  invoices: Invoice[];
+}
+
 export interface BillingAddress {
   /** @minLength 1 */
   line1: string;
