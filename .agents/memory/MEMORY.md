@@ -1,1 +1,2 @@
 - [connect-pg-simple in bundled server](session-store-bundling.md) — `createTableIfMissing` silently no-ops in esbuild bundles; manage the session table via Drizzle instead.
+- [Codegen drift](codegen-drift.md) — generated API client can lag openapi.yaml (esp. after merges); regenerate before trusting types
