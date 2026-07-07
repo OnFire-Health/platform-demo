@@ -294,14 +294,20 @@ router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res)
           status: inv.status,
           amount: inv.amount,
           currency: inv.currency,
+          clientEmail: inv.clientEmail,
+          rateCardRefId: inv.rateCardRefId,
         })
         .onConflictDoUpdate({
           target: [invoicesTable.connectionId, invoicesTable.externalInvoiceRef],
+          // OnFire is the source of truth — overwrite every mirrored field so a locally
+          // edited row is corrected, not just the payment-lifecycle fields.
           set: {
             invoicePublicId: inv.invoicePublicId,
             status: inv.status,
             amount: inv.amount,
             currency: inv.currency,
+            clientEmail: inv.clientEmail,
+            rateCardRefId: inv.rateCardRefId,
           },
         });
       reconciled += 1;
