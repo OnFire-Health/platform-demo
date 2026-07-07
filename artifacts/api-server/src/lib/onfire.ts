@@ -212,7 +212,7 @@ function asArray(data: unknown): unknown[] {
   if (Array.isArray(data)) return data;
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
-    for (const key of ["results", "data", "rate_cards", "items"]) {
+    for (const key of ["results", "data", "rate_cards", "invoices", "items"]) {
       if (Array.isArray(record[key])) return record[key] as unknown[];
     }
   }
@@ -289,6 +289,37 @@ export function mapInvoice(data: unknown): MappedInvoice {
     amount: str(r["amount"]) ?? str(r["total"]),
     currency: str(r["currency"]),
     externalInvoiceRef: str(r["external_invoice_ref"]),
+  };
+}
+
+/**
+ * Map an OnFire InvoiceListResponse envelope ({ invoices, total, ... }) — or a bare
+ * array — into MappedInvoice[]. Envelope keys are unwrapped by asArray().
+ */
+export function mapInvoices(data: unknown): MappedInvoice[] {
+  return asArray(data).map(mapInvoice);
+}
+
+export interface FetchInvoicesResult {
+  ok: boolean;
+  status: number;
+  invoices: MappedInvoice[];
+}
+
+/**
+ * Pull this connection's invoices from OnFire (GET /core/partner/invoices/). OnFire
+ * scopes the result to this practitioner AND our Connected App, so it returns exactly
+ * the invoices we created — the same set we mirror locally. Used to reconcile/backfill
+ * the mirror when a webhook was missed.
+ */
+export async function fetchInvoices(
+  connectionId: string,
+): Promise<FetchInvoicesResult> {
+  const result = await onfireRequest(connectionId, "/core/partner/invoices/");
+  return {
+    ok: result.ok,
+    status: result.status,
+    invoices: result.ok ? mapInvoices(result.data) : [],
   };
 }
 

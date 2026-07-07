@@ -23,5 +23,6 @@ export * from './operatorCredentials';
 export * from './platformConfig';
 export * from './platformSummary';
 export * from './rateCard';
+export * from './reconcileResult';
 export * from './sessionState';
 export * from './webhookEvent';

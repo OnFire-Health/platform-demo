@@ -74,13 +74,26 @@ export interface AuthorizeUrl {
 
 export interface RateCard {
   refId: string;
-  name: string;
+  productName: string;
+  company: string;
+  /** bundle | addOn */
+  type: string;
   /** @nullable */
-  description?: string | null;
+  duration?: string | null;
+  /**
+     * Headline price in dollars.
+     * @nullable
+     */
+  fullPrice?: string | null;
   /** @nullable */
-  amount?: string | null;
+  installmentsPrice?: string | null;
+  fullPriceOnly?: boolean;
   /** @nullable */
-  currency?: string | null;
+  payoutPlan?: string | null;
+  /** @nullable */
+  subTitle?: string | null;
+  /** @nullable */
+  details?: string | null;
   active: boolean;
 }
 
@@ -102,6 +115,12 @@ export interface Invoice {
   rateCardRefId?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ReconcileResult {
+  /** Number of invoices upserted from OnFire into the local mirror. */
+  reconciled: number;
+  invoices: Invoice[];
 }
 
 export interface BillingAddress {
