@@ -1,8 +1,8 @@
 # platform-demo — build spec (Replit)
 
-A reference integration for **OnFire requirement #2**: a third-party **Platform**
+A reference integration for **Onfire requirement #2**: a third-party **Platform**
 that hosts **many independent practitioners**, each of whom connects
-**their own** OnFire Health partner account via OAuth. The Platform then, on behalf of
+**their own** Onfire Health partner account via OAuth. The Platform then, on behalf of
 each connected practitioner, lists that practitioner's rate cards, creates invoices,
 and receives invoice webhooks — at **one** platform webhook receiver, routed per
 practitioner.
@@ -16,13 +16,13 @@ new project. Same stack and conventions as `partner-payment-demo` so the two rea
 - TypeScript, **Express** server + **Vite/React** client (shadcn/ui + Tailwind).
 - **Drizzle ORM** over Postgres (Replit DB).
 - Session via `express-session` (cookie) for the demo operator's login (a Platform
-  staff user) — this is the *Platform's* own auth, unrelated to OnFire.
+  staff user) — this is the *Platform's* own auth, unrelated to Onfire.
 
 ## The core difference from partner-payment-demo
 
 `partner-payment-demo` stores a **singleton** OAuth connection. This app stores **many
 connections — one per connected practitioner** — and selects the right one per action.
-Everything else (authorization-code flow, refresh-on-401, the OnFire API calls) is the
+Everything else (authorization-code flow, refresh-on-401, the Onfire API calls) is the
 same shape; the multiplicity is the point.
 
 ## Data model (Drizzle)
@@ -30,7 +30,7 @@ same shape; the multiplicity is the point.
 ```
 connections
   id              uuid pk
-  partner_public_id   text unique   -- OnFire's opaque practitioner id (prt_…); the routing key
+  partner_public_id   text unique   -- Onfire's opaque practitioner id (prt_…); the routing key
   display_name    text              -- practitioner label the operator typed (e.g. "Dr. Lee Clinic")
   org_id          text              -- stytch org id from the token's namespaced org claim (audit only)
   access_token    text
@@ -48,8 +48,8 @@ oauth_states                        -- short-lived CSRF state for the authorize 
 invoices                            -- local mirror for the UI / webhook correlation
   id                  uuid pk
   connection_id       uuid fk -> connections.id
-  external_invoice_ref text        -- OUR id; also the OnFire idempotency key (unique per practitioner)
-  invoice_public_id   text         -- returned by OnFire
+  external_invoice_ref text        -- OUR id; also the Onfire idempotency key (unique per practitioner)
+  invoice_public_id   text         -- returned by Onfire
   status              text         -- last status we heard (open/processing/paid/void/refunded/returned)
   amount              text
   currency            text
@@ -70,32 +70,32 @@ Flow:
    `${ONFIRE_AUTHORIZE_URL}?client_id=…&redirect_uri=…&scope=…&state=…`
    (scopes must include `offline_access` so we get a refresh token, plus
    `payment-connection`).
-3. The practitioner lands on OnFire's hosted consent screen, **logs into their own
-   OnFire org**, and consents. (If their Bill.com vendor isn't verified, OnFire blocks
-   here — surface that error gracefully: "practitioner must finish OnFire payout setup
+3. The practitioner lands on Onfire's hosted consent screen, **logs into their own
+   Onfire org**, and consents. (If their Bill.com vendor isn't verified, Onfire blocks
+   here — surface that error gracefully: "practitioner must finish Onfire payout setup
    first.")
-4. OnFire redirects back to `${ONFIRE_REDIRECT_URI}` with `code` + `state`.
+4. Onfire redirects back to `${ONFIRE_REDIRECT_URI}` with `code` + `state`.
 5. Server verifies `state`, exchanges `code` for tokens.
 6. Decode the access token (JWT) to read the namespaced org claim
    `payload["https://stytch.com/organization"]["organization_id"]` (audit) and call
-   OnFire to fetch the practitioner's `partner_public_id` (see API notes) — store a new
+   Onfire to fetch the practitioner's `partner_public_id` (see API notes) — store a new
    `connections` row. **Upsert by `partner_public_id`** so re-connecting the same
    practitioner refreshes their row rather than duplicating.
 
-## OnFire API calls (per connection, Bearer = that connection's access_token)
+## Onfire API calls (per connection, Bearer = that connection's access_token)
 
 All go through a small `onfireFetch(connectionId, …)` that injects
 `Authorization: Bearer <connection.access_token>` and lazily refreshes on 401 (port the
 demo's `server/onfire/proxy.ts`).
 
 - **List rate cards:** `GET /api/v1/meta/partner-rate-cards/` → returns only that
-  practitioner's active cards (OnFire scopes by the token's org).
+  practitioner's active cards (Onfire scopes by the token's org).
 - **Create invoice:** `POST /api/v1/core/partner/invoices/` with
   `{ rate_card_ref_id, client_email, client_first_name?, client_last_name?,
   client_phone?, client_billing_address?, external_client_ref?, external_invoice_ref }`.
   `external_invoice_ref` is **required** and is the idempotency key — generate one per
   invoice and store it. A repeat POST with the same ref is a no-op (returns the existing
-  invoice). The amount is **not** sent — OnFire derives it from the rate card.
+  invoice). The amount is **not** sent — Onfire derives it from the rate card.
 
 > Confirm the exact invoice request/response shape against onfire-core
 > `core_service/.../controllers` (partner invoices controller) at build time; the field
@@ -103,7 +103,7 @@ demo's `server/onfire/proxy.ts`).
 
 ## Webhook receiver — ONE endpoint for ALL practitioners
 
-- `POST /webhooks/onfire` — single public endpoint registered (by OnFire ops) for this
+- `POST /webhooks/onfire` — single public endpoint registered (by Onfire ops) for this
   Platform's Connected App.
 - Verify the **HMAC-SHA256** signature over the raw body + timestamp using the
   platform's single `ONFIRE_WEBHOOK_SIGNING_SECRET` (Stripe-style `t=…,v1=…`). Reject on
@@ -122,7 +122,7 @@ demo's `server/onfire/proxy.ts`).
 
 - **Connections page** — list connected practitioners (display name, status,
   connected_at), a "Connect a practitioner" button, and a per-row "disconnect" (calls
-  OnFire revoke + marks row revoked).
+  Onfire revoke + marks row revoked).
 - **Connection picker** — a selector at the top; everything below operates on the chosen
   practitioner.
 - For the selected practitioner: **rate cards** list, a **create-invoice** form, and an
@@ -143,14 +143,14 @@ ONFIRE_REDIRECT_URI=            # this app's /oauth/callback
 ONFIRE_OAUTH_SCOPES=            # "payment-connection offline_access"
 ONFIRE_AUTHORIZE_URL=
 ONFIRE_API_BASE=                # onfire-core base, e.g. https://api-dev…/api/v1
-ONFIRE_WEBHOOK_SIGNING_SECRET=  # the platform endpoint secret OnFire ops gives you
+ONFIRE_WEBHOOK_SIGNING_SECRET=  # the platform endpoint secret Onfire ops gives you
 ```
 
 ## Explicitly out of scope (v1)
 
-- Self-serve / DCR registration of the Connected App (OnFire ops provisions it manually).
-- Practitioner onboarding (each practitioner is already an onboarded OnFire Partner).
-- Paying invoices (that's the guest `/pay/{invoice_public_id}` surface in OnFire's UI).
+- Self-serve / DCR registration of the Connected App (Onfire ops provisions it manually).
+- Practitioner onboarding (each practitioner is already an onboarded Onfire Partner).
+- Paying invoices (that's the guest `/pay/{invoice_public_id}` surface in Onfire's UI).
 - Any patient PII storage.
 
 ## Acceptance (the demo must show)
@@ -158,7 +158,7 @@ ONFIRE_WEBHOOK_SIGNING_SECRET=  # the platform endpoint secret OnFire ops gives 
 1. Connect **two** different practitioners through the **same** Connected App; two
    `connections` rows, two different `partner_public_id`s.
 2. List each practitioner's **own** rate cards (they differ; no cross-tenant bleed).
-3. Create an invoice for each; OnFire emails their guest a pay link.
+3. Create an invoice for each; Onfire emails their guest a pay link.
 4. Both practitioners' `invoice.*` webhooks arrive at the **one** receiver and are routed
    to the correct connection by `partner_public_id`.
 5. Re-POST an invoice with the same `external_invoice_ref` → no duplicate.

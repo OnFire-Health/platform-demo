@@ -14,7 +14,7 @@ function redirectBack(res: import("express").Response, query: string) {
   res.redirect(`/connections${query}`);
 }
 
-// Browser redirect target after OnFire's hosted consent. Not session-guarded.
+// Browser redirect target after Onfire's hosted consent. Not session-guarded.
 router.get("/oauth/callback", async (req, res) => {
   const code = typeof req.query["code"] === "string" ? req.query["code"] : "";
   const state = typeof req.query["state"] === "string" ? req.query["state"] : "";
@@ -22,7 +22,7 @@ router.get("/oauth/callback", async (req, res) => {
     typeof req.query["error"] === "string" ? req.query["error"] : "";
 
   if (oauthError) {
-    req.log.warn({ oauthError }, "OnFire returned an OAuth error");
+    req.log.warn({ oauthError }, "Onfire returned an OAuth error");
     redirectBack(res, `?error=${encodeURIComponent(oauthError)}`);
     return;
   }

@@ -1,5 +1,5 @@
 /**
- * OnFire / platform configuration sourced from environment variables.
+ * Onfire / platform configuration sourced from environment variables.
  *
  * The single Connected App's client_id / client_secret are shared across every
  * connected practitioner — that is the whole platform model.
@@ -47,13 +47,13 @@ export function getConfig(): OnFireConfig {
     authorizeUrl: process.env["ONFIRE_AUTHORIZE_URL"] ?? "",
     apiBase: trimTrailingSlash(process.env["ONFIRE_API_BASE"] ?? ""),
     webhookSigningSecret: process.env["ONFIRE_WEBHOOK_SIGNING_SECRET"] ?? "",
-    // OnFire's OAuth "current partner" endpoint — returns partner_public_id (the
+    // Onfire's OAuth "current partner" endpoint — returns partner_public_id (the
     // webhook routing key). apiBase already includes /api/v1.
     partnerInfoPath: process.env["ONFIRE_PARTNER_INFO_PATH"] || "/meta/partners/me",
   };
 }
 
-/** The public webhook URL OnFire ops should register for this platform. */
+/** The public webhook URL Onfire ops should register for this platform. */
 export function webhookUrl(): string {
   const base = appBaseUrl();
   return base ? `${base}/api/webhooks/onfire` : "/api/webhooks/onfire";

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Platform Demo API — a multi-tenant Platform that hosts many independent
-practitioners, each of whom connects their own OnFire Health partner account
+practitioners, each of whom connects their own Onfire Health partner account
 via OAuth. The Platform lists each practitioner's rate cards, creates
 invoices on their behalf, and receives invoice webhooks at one routed
 receiver.
@@ -358,8 +358,8 @@ export const getGetPlatformConfigUrl = () => {
 }
 
 /**
- * Reports whether OnFire env vars are configured and the callback/webhook URLs for OnFire ops to register.
- * @summary Platform OnFire configuration status
+ * Reports whether Onfire env vars are configured and the callback/webhook URLs for Onfire ops to register.
+ * @summary Platform Onfire configuration status
  */
 export const getPlatformConfig = async ( options?: RequestInit): Promise<PlatformConfig> => {
 
@@ -406,7 +406,7 @@ export type GetPlatformConfigQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Platform OnFire configuration status
+ * @summary Platform Onfire configuration status
  */
 
 export function useGetPlatformConfig<TData = Awaited<ReturnType<typeof getPlatformConfig>>, TError = ErrorType<unknown>>(
@@ -590,7 +590,7 @@ export const getCreateAuthorizeUrlUrl = () => {
 }
 
 /**
- * Generates and persists a CSRF state, then returns the OnFire authorize URL to redirect the practitioner to.
+ * Generates and persists a CSRF state, then returns the Onfire authorize URL to redirect the practitioner to.
  * @summary Begin connecting a practitioner
  */
 export const createAuthorizeUrl = async (authorizeInput: AuthorizeInput, options?: RequestInit): Promise<AuthorizeUrl> => {
@@ -739,7 +739,7 @@ export const getDisconnectConnectionUrl = (id: string,) => {
 }
 
 /**
- * Revokes the OnFire token and marks the connection revoked.
+ * Revokes the Onfire token and marks the connection revoked.
  * @summary Disconnect a practitioner
  */
 export const disconnectConnection = async (id: string, options?: RequestInit): Promise<Connection> => {
@@ -810,7 +810,7 @@ export const getListRateCardsUrl = (id: string,) => {
 }
 
 /**
- * @summary List a practitioner's OnFire rate cards
+ * @summary List a practitioner's Onfire rate cards
  */
 export const listRateCards = async (id: string, options?: RequestInit): Promise<RateCard[]> => {
 
@@ -857,7 +857,7 @@ export type ListRateCardsQueryError = ErrorType<Error>
 
 
 /**
- * @summary List a practitioner's OnFire rate cards
+ * @summary List a practitioner's Onfire rate cards
  */
 
 export function useListRateCards<TData = Awaited<ReturnType<typeof listRateCards>>, TError = ErrorType<Error>>(
@@ -964,7 +964,7 @@ export const getCreateInvoiceUrl = (id: string,) => {
 }
 
 /**
- * Generates an external_invoice_ref idempotency key, posts to OnFire, and mirrors the result locally.
+ * Generates an external_invoice_ref idempotency key, posts to Onfire, and mirrors the result locally.
  * @summary Create an invoice on behalf of a practitioner
  */
 export const createInvoice = async (id: string,
@@ -1037,8 +1037,8 @@ export const getReconcileInvoicesUrl = (id: string,) => {
 }
 
 /**
- * Pulls the practitioner's invoices from OnFire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
- * @summary Reconcile the local invoice mirror against OnFire
+ * Pulls the practitioner's invoices from Onfire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
+ * @summary Reconcile the local invoice mirror against Onfire
  */
 export const reconcileInvoices = async (id: string, options?: RequestInit): Promise<ReconcileResult> => {
 
@@ -1086,7 +1086,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ReconcileInvoicesMutationError = ErrorType<Error>
 
     /**
- * @summary Reconcile the local invoice mirror against OnFire
+ * @summary Reconcile the local invoice mirror against Onfire
  */
 export const useReconcileInvoices = <TError = ErrorType<Error>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileInvoices>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1108,7 +1108,7 @@ export const getListWebhookEventsUrl = () => {
 }
 
 /**
- * Most recent OnFire webhook events received at the single platform receiver, with the practitioner each was routed to.
+ * Most recent Onfire webhook events received at the single platform receiver, with the practitioner each was routed to.
  * @summary Recent received webhook events
  */
 export const listWebhookEvents = async ( options?: RequestInit): Promise<WebhookEvent[]> => {

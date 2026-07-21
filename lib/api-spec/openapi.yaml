@@ -5,7 +5,7 @@ info:
   version: 0.1.0
   description: |
     Platform Demo API — a multi-tenant Platform that hosts many independent
-    practitioners, each of whom connects their own OnFire Health partner account
+    practitioners, each of whom connects their own Onfire Health partner account
     via OAuth. The Platform lists each practitioner's rate cards, creates
     invoices on their behalf, and receives invoice webhooks at one routed
     receiver.
@@ -18,11 +18,11 @@ tags:
   - name: session
     description: Platform operator session
   - name: connections
-    description: Connected practitioners (one OnFire connection each)
+    description: Connected practitioners (one Onfire connection each)
   - name: invoices
     description: Invoices created on behalf of practitioners
   - name: webhooks
-    description: Received OnFire webhook events
+    description: Received Onfire webhook events
   - name: platform
     description: Platform configuration and summary
 paths:
@@ -87,8 +87,8 @@ paths:
     get:
       operationId: getPlatformConfig
       tags: [platform]
-      summary: Platform OnFire configuration status
-      description: Reports whether OnFire env vars are configured and the callback/webhook URLs for OnFire ops to register.
+      summary: Platform Onfire configuration status
+      description: Reports whether Onfire env vars are configured and the callback/webhook URLs for Onfire ops to register.
       responses:
         "200":
           description: Config status
@@ -130,7 +130,7 @@ paths:
       operationId: createAuthorizeUrl
       tags: [connections]
       summary: Begin connecting a practitioner
-      description: Generates and persists a CSRF state, then returns the OnFire authorize URL to redirect the practitioner to.
+      description: Generates and persists a CSRF state, then returns the Onfire authorize URL to redirect the practitioner to.
       requestBody:
         required: true
         content:
@@ -177,7 +177,7 @@ paths:
       operationId: disconnectConnection
       tags: [connections]
       summary: Disconnect a practitioner
-      description: Revokes the OnFire token and marks the connection revoked.
+      description: Revokes the Onfire token and marks the connection revoked.
       parameters:
         - $ref: "#/components/parameters/ConnectionId"
       responses:
@@ -198,7 +198,7 @@ paths:
     get:
       operationId: listRateCards
       tags: [connections]
-      summary: List a practitioner's OnFire rate cards
+      summary: List a practitioner's Onfire rate cards
       parameters:
         - $ref: "#/components/parameters/ConnectionId"
       responses:
@@ -217,7 +217,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "502":
-          description: Upstream OnFire error
+          description: Upstream Onfire error
           content:
             application/json:
               schema:
@@ -249,7 +249,7 @@ paths:
       operationId: createInvoice
       tags: [invoices]
       summary: Create an invoice on behalf of a practitioner
-      description: Generates an external_invoice_ref idempotency key, posts to OnFire, and mirrors the result locally.
+      description: Generates an external_invoice_ref idempotency key, posts to Onfire, and mirrors the result locally.
       parameters:
         - $ref: "#/components/parameters/ConnectionId"
       requestBody:
@@ -278,7 +278,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "502":
-          description: Upstream OnFire error
+          description: Upstream Onfire error
           content:
             application/json:
               schema:
@@ -288,9 +288,9 @@ paths:
     post:
       operationId: reconcileInvoices
       tags: [invoices]
-      summary: Reconcile the local invoice mirror against OnFire
+      summary: Reconcile the local invoice mirror against Onfire
       description: >-
-        Pulls the practitioner's invoices from OnFire (the source of truth) and upserts
+        Pulls the practitioner's invoices from Onfire (the source of truth) and upserts
         each into the local mirror, keyed on external_invoice_ref. Use to re-converge the
         mirror when a webhook delivery was missed.
       parameters:
@@ -315,7 +315,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "502":
-          description: Upstream OnFire error
+          description: Upstream Onfire error
           content:
             application/json:
               schema:
@@ -326,7 +326,7 @@ paths:
       operationId: listWebhookEvents
       tags: [webhooks]
       summary: Recent received webhook events
-      description: Most recent OnFire webhook events received at the single platform receiver, with the practitioner each was routed to.
+      description: Most recent Onfire webhook events received at the single platform receiver, with the practitioner each was routed to.
       responses:
         "200":
           description: Webhook events
@@ -469,7 +469,7 @@ components:
     RateCard:
       type: object
       # Mirrors onfire-core PartnerRateCardResponse. Prices are in DOLLARS (not cents).
-      # OnFire does not return a currency on rate cards — it defaults to USD at invoice
+      # Onfire does not return a currency on rate cards — it defaults to USD at invoice
       # creation.
       required: [refId, productName, company, type, active]
       properties:
@@ -542,7 +542,7 @@ components:
       properties:
         reconciled:
           type: integer
-          description: Number of invoices upserted from OnFire into the local mirror.
+          description: Number of invoices upserted from Onfire into the local mirror.
         invoices:
           type: array
           items:
@@ -550,7 +550,7 @@ components:
 
     InvoiceInput:
       type: object
-      # OnFire requires name, phone and a structured billing address on every invoice
+      # Onfire requires name, phone and a structured billing address on every invoice
       # (PartnerInvoiceCreate is extra=forbid). Mirror that contract here.
       required:
         [rateCardRefId, clientEmail, clientName, clientPhone, clientBillingAddress]
@@ -559,7 +559,7 @@ components:
           type: string
           minLength: 1
           description: >-
-            Platform's own stable reference for this invoice, used as the OnFire
+            Platform's own stable reference for this invoice, used as the Onfire
             idempotency key. Re-POSTing the same value returns the existing
             invoice instead of creating a duplicate. Generated server-side if
             omitted.

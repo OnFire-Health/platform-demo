@@ -17,7 +17,7 @@ import { Plus, Loader2 } from "lucide-react";
 export function ConnectDialog() {
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  
+
   const createUrl = useCreateAuthorizeUrl();
 
   const handleConnect = (e: React.FormEvent) => {
@@ -48,7 +48,7 @@ export function ConnectDialog() {
           <DialogHeader>
             <DialogTitle>Connect Practitioner</DialogTitle>
             <DialogDescription>
-              Start the OAuth authorization flow to connect a practitioner's OnFire account.
+              Start the OAuth authorization flow to connect a practitioner's Onfire account.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-6">

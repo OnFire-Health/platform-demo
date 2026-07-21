@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Platform Demo API — a multi-tenant Platform that hosts many independent
-practitioners, each of whom connects their own OnFire Health partner account
+practitioners, each of whom connects their own Onfire Health partner account
 via OAuth. The Platform lists each practitioner's rate cards, creates
 invoices on their behalf, and receives invoice webhooks at one routed
 receiver.
@@ -48,8 +48,8 @@ export const LoginResponse = zod.object({
 
 
 /**
- * Reports whether OnFire env vars are configured and the callback/webhook URLs for OnFire ops to register.
- * @summary Platform OnFire configuration status
+ * Reports whether Onfire env vars are configured and the callback/webhook URLs for Onfire ops to register.
+ * @summary Platform Onfire configuration status
  */
 export const GetPlatformConfigResponse = zod.object({
   "configured": zod.boolean(),
@@ -91,7 +91,7 @@ export const ListConnectionsResponse = zod.array(ListConnectionsResponseItem)
 
 
 /**
- * Generates and persists a CSRF state, then returns the OnFire authorize URL to redirect the practitioner to.
+ * Generates and persists a CSRF state, then returns the Onfire authorize URL to redirect the practitioner to.
  * @summary Begin connecting a practitioner
  */
 
@@ -126,7 +126,7 @@ export const GetConnectionResponse = zod.object({
 
 
 /**
- * Revokes the OnFire token and marks the connection revoked.
+ * Revokes the Onfire token and marks the connection revoked.
  * @summary Disconnect a practitioner
  */
 export const DisconnectConnectionParams = zod.object({
@@ -146,7 +146,7 @@ export const DisconnectConnectionResponse = zod.object({
 
 
 /**
- * @summary List a practitioner's OnFire rate cards
+ * @summary List a practitioner's Onfire rate cards
  */
 export const ListRateCardsParams = zod.object({
   "id": zod.coerce.string().describe('Local connection id (uuid)')
@@ -193,7 +193,7 @@ export const ListInvoicesResponse = zod.array(ListInvoicesResponseItem)
 
 
 /**
- * Generates an external_invoice_ref idempotency key, posts to OnFire, and mirrors the result locally.
+ * Generates an external_invoice_ref idempotency key, posts to Onfire, and mirrors the result locally.
  * @summary Create an invoice on behalf of a practitioner
  */
 export const CreateInvoiceParams = zod.object({
@@ -212,7 +212,7 @@ export const CreateInvoiceParams = zod.object({
 
 
 export const CreateInvoiceBody = zod.object({
-  "externalInvoiceRef": zod.string().min(1).optional().describe('Platform\'s own stable reference for this invoice, used as the OnFire idempotency key. Re-POSTing the same value returns the existing invoice instead of creating a duplicate. Generated server-side if omitted.'),
+  "externalInvoiceRef": zod.string().min(1).optional().describe('Platform\'s own stable reference for this invoice, used as the Onfire idempotency key. Re-POSTing the same value returns the existing invoice instead of creating a duplicate. Generated server-side if omitted.'),
   "rateCardRefId": zod.string().min(1),
   "clientEmail": zod.string().min(1),
   "clientName": zod.string().min(1),
@@ -230,15 +230,15 @@ export const CreateInvoiceBody = zod.object({
 
 
 /**
- * Pulls the practitioner's invoices from OnFire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
- * @summary Reconcile the local invoice mirror against OnFire
+ * Pulls the practitioner's invoices from Onfire (the source of truth) and upserts each into the local mirror, keyed on external_invoice_ref. Use to re-converge the mirror when a webhook delivery was missed.
+ * @summary Reconcile the local invoice mirror against Onfire
  */
 export const ReconcileInvoicesParams = zod.object({
   "id": zod.coerce.string().describe('Local connection id (uuid)')
 })
 
 export const ReconcileInvoicesResponse = zod.object({
-  "reconciled": zod.number().describe('Number of invoices upserted from OnFire into the local mirror.'),
+  "reconciled": zod.number().describe('Number of invoices upserted from Onfire into the local mirror.'),
   "invoices": zod.array(zod.object({
   "id": zod.string(),
   "connectionId": zod.string(),
@@ -256,7 +256,7 @@ export const ReconcileInvoicesResponse = zod.object({
 
 
 /**
- * Most recent OnFire webhook events received at the single platform receiver, with the practitioner each was routed to.
+ * Most recent Onfire webhook events received at the single platform receiver, with the practitioner each was routed to.
  * @summary Recent received webhook events
  */
 export const ListWebhookEventsResponseItem = zod.object({

@@ -61,7 +61,7 @@ router.post("/connections/authorize", requireAuth, async (req, res) => {
   if (!cfg.authorizeUrl || !cfg.clientId) {
     res
       .status(400)
-      .json({ error: "OnFire is not configured. Set the required env vars first." });
+      .json({ error: "Onfire is not configured. Set the required env vars first." });
     return;
   }
 
@@ -118,14 +118,14 @@ router.get("/connections/:id/rate-cards", requireAuth, async (req, res) => {
       "/meta/partner-rate-cards/",
     );
     if (!result.ok) {
-      req.log.warn({ status: result.status }, "OnFire rate-cards error");
-      res.status(502).json({ error: "Failed to fetch rate cards from OnFire" });
+      req.log.warn({ status: result.status }, "Onfire rate-cards error");
+      res.status(502).json({ error: "Failed to fetch rate cards from Onfire" });
       return;
     }
     res.json(mapRateCards(result.data));
   } catch (err) {
     req.log.error({ err }, "rate-cards request failed");
-    res.status(502).json({ error: "Failed to fetch rate cards from OnFire" });
+    res.status(502).json({ error: "Failed to fetch rate cards from Onfire" });
   }
 });
 
@@ -163,14 +163,14 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
   }
   const input = parsed.data;
 
-  // external_invoice_ref is the OnFire idempotency key. The caller may supply a
+  // external_invoice_ref is the Onfire idempotency key. The caller may supply a
   // stable value so a re-POST is idempotent; otherwise we generate one.
   const externalInvoiceRef =
     input.externalInvoiceRef?.trim() || `pd_${crypto.randomBytes(12).toString("hex")}`;
 
   // Claim the (connection_id, external_invoice_ref) pair locally BEFORE calling
-  // OnFire. The unique index makes this the idempotency gate: a re-POST with the
-  // same ref conflicts, so we return the existing invoice and never call OnFire
+  // Onfire. The unique index makes this the idempotency gate: a re-POST with the
+  // same ref conflicts, so we return the existing invoice and never call Onfire
   // (or create a duplicate) twice.
   const claimed = await db
     .insert(invoicesTable)
@@ -204,7 +204,7 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
 
   const claimedRow = claimed[0]!;
 
-  // Map to the OnFire contract (PartnerInvoiceCreate, extra=forbid): ref_id (not
+  // Map to the Onfire contract (PartnerInvoiceCreate, extra=forbid): ref_id (not
   // rate_card_ref_id), single client_name, required phone + structured billing address
   // with snake_case postal_code.
   const addr = input.clientBillingAddress;
@@ -236,8 +236,8 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
       await db
         .delete(invoicesTable)
         .where(eq(invoicesTable.id, claimedRow.id));
-      req.log.warn({ status: result.status, data: result.data }, "OnFire invoice error");
-      res.status(502).json({ error: "Failed to create invoice in OnFire" });
+      req.log.warn({ status: result.status, data: result.data }, "Onfire invoice error");
+      res.status(502).json({ error: "Failed to create invoice in Onfire" });
       return;
     }
     const mapped = mapInvoice(result.data);
@@ -255,13 +255,13 @@ router.post("/connections/:id/invoices", requireAuth, async (req, res) => {
   } catch (err) {
     await db.delete(invoicesTable).where(eq(invoicesTable.id, claimedRow.id));
     req.log.error({ err }, "invoice creation failed");
-    res.status(502).json({ error: "Failed to create invoice in OnFire" });
+    res.status(502).json({ error: "Failed to create invoice in Onfire" });
   }
 });
 
-// Reconcile the local invoice mirror against OnFire (the source of truth). Webhook
+// Reconcile the local invoice mirror against Onfire (the source of truth). Webhook
 // delivery is at-least-once and can be missed; this pulls the current invoice set from
-// OnFire and upserts each row so the mirror re-converges. Matches on the
+// Onfire and upserts each row so the mirror re-converges. Matches on the
 // (connection_id, external_invoice_ref) unique key — the same key the create + webhook
 // paths write.
 router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res) => {
@@ -277,8 +277,8 @@ router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res)
   try {
     const result = await fetchInvoices(connection.id);
     if (!result.ok) {
-      req.log.warn({ status: result.status }, "OnFire list-invoices error");
-      res.status(502).json({ error: "Failed to fetch invoices from OnFire" });
+      req.log.warn({ status: result.status }, "Onfire list-invoices error");
+      res.status(502).json({ error: "Failed to fetch invoices from Onfire" });
       return;
     }
     let reconciled = 0;
@@ -299,7 +299,7 @@ router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res)
         })
         .onConflictDoUpdate({
           target: [invoicesTable.connectionId, invoicesTable.externalInvoiceRef],
-          // OnFire is the source of truth — overwrite every mirrored field so a locally
+          // Onfire is the source of truth — overwrite every mirrored field so a locally
           // edited row is corrected, not just the payment-lifecycle fields.
           set: {
             invoicePublicId: inv.invoicePublicId,
@@ -320,7 +320,7 @@ router.post("/connections/:id/invoices/reconcile", requireAuth, async (req, res)
     res.json({ reconciled, invoices: rows });
   } catch (err) {
     req.log.error({ err }, "invoice reconcile failed");
-    res.status(502).json({ error: "Failed to reconcile invoices from OnFire" });
+    res.status(502).json({ error: "Failed to reconcile invoices from Onfire" });
   }
 });
 

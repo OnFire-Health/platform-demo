@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Platform Demo API — a multi-tenant Platform that hosts many independent
-practitioners, each of whom connects their own OnFire Health partner account
+practitioners, each of whom connects their own Onfire Health partner account
 via OAuth. The Platform lists each practitioner's rate cards, creates
 invoices on their behalf, and receives invoice webhooks at one routed
 receiver.
@@ -13,7 +13,7 @@ receiver.
 import type { Invoice } from './invoice';
 
 export interface ReconcileResult {
-  /** Number of invoices upserted from OnFire into the local mirror. */
+  /** Number of invoices upserted from Onfire into the local mirror. */
   reconciled: number;
   invoices: Invoice[];
 }

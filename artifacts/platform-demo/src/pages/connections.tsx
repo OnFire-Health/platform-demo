@@ -30,7 +30,7 @@ export function Connections() {
   const handleDisconnect = (id: string) => {
     disconnect.mutate({ id }, {
       onSuccess: () => {
-        toast({ title: "Practitioner disconnected", description: "The OnFire access token has been revoked." });
+        toast({ title: "Practitioner disconnected", description: "The Onfire access token has been revoked." });
         queryClient.invalidateQueries({ queryKey: getListConnectionsQueryKey() });
       },
       onError: () => {
@@ -44,7 +44,7 @@ export function Connections() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Connections</h1>
-          <p className="text-muted-foreground mt-1">Manage connected OnFire practitioner accounts.</p>
+          <p className="text-muted-foreground mt-1">Manage connected Onfire practitioner accounts.</p>
         </div>
         <ConnectDialog />
       </div>
@@ -113,7 +113,7 @@ export function Connections() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Disconnect {conn.displayName}?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will revoke the OAuth token and disconnect the practitioner from the platform. 
+                              This will revoke the OAuth token and disconnect the practitioner from the platform.
                               You will no longer be able to create invoices on their behalf.
                             </AlertDialogDescription>
                           </AlertDialogHeader>

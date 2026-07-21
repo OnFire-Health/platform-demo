@@ -35,23 +35,23 @@ export function Dashboard() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Connections" 
-          value={summary?.totalConnections} 
+        <StatCard
+          title="Total Connections"
+          value={summary?.totalConnections}
           subtitle={`${summary?.activeConnections || 0} active`}
           icon={Users}
           isLoading={isLoadingSummary}
         />
-        <StatCard 
-          title="Total Invoices" 
-          value={summary?.totalInvoices} 
+        <StatCard
+          title="Total Invoices"
+          value={summary?.totalInvoices}
           subtitle={`${summary?.openInvoices || 0} open, ${summary?.paidInvoices || 0} paid`}
           icon={FileText}
           isLoading={isLoadingSummary}
         />
-        <StatCard 
-          title="Webhook Events" 
-          value={summary?.webhookEvents} 
+        <StatCard
+          title="Webhook Events"
+          value={summary?.webhookEvents}
           subtitle="Processed via receiver"
           icon={Activity}
           isLoading={isLoadingSummary}
@@ -76,7 +76,7 @@ export function Dashboard() {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              OnFire integration status
+              Onfire integration status
             </p>
           </CardContent>
         </Card>
@@ -85,8 +85,8 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="col-span-1 border-border shadow-sm">
           <CardHeader>
-            <CardTitle>OnFire Configuration</CardTitle>
-            <CardDescription>Register these URLs in your OnFire Partner Portal.</CardDescription>
+            <CardTitle>Onfire Configuration</CardTitle>
+            <CardDescription>Register these URLs in your Onfire Partner Portal.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoadingConfig ? (
@@ -120,7 +120,7 @@ export function Dashboard() {
             ) : null}
           </CardContent>
         </Card>
-        
+
         <Card className="col-span-1 border-border shadow-sm">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -134,7 +134,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-semibold mb-1">Onboard Practitioner</h4>
-                  <p className="text-sm text-muted-foreground mb-3">Connect a new practitioner's OnFire account to the platform.</p>
+                  <p className="text-sm text-muted-foreground mb-3">Connect a new practitioner's Onfire account to the platform.</p>
                   <ConnectDialog />
                 </div>
               </div>

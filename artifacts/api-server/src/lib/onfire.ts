@@ -71,7 +71,7 @@ export async function revokeToken(token: string): Promise<void> {
       body: new URLSearchParams({ token }).toString(),
     });
   } catch (err) {
-    logger.warn({ err }, "OnFire token revoke failed (continuing)");
+    logger.warn({ err }, "Onfire token revoke failed (continuing)");
   }
 }
 
@@ -85,7 +85,7 @@ function isPartnerPublicId(s: string): boolean {
 }
 
 /**
- * Resolve the practitioner's opaque OnFire partner_public_id (prt_…) — the
+ * Resolve the practitioner's opaque Onfire partner_public_id (prt_…) — the
  * routing key for webhooks. Tries the token claims first, then a partner-info
  * endpoint, then falls back to the org id.
  */
@@ -144,7 +144,7 @@ export interface OnFireResult {
 }
 
 /**
- * Make an authenticated OnFire request for a specific connection, injecting that
+ * Make an authenticated Onfire request for a specific connection, injecting that
  * connection's bearer token and lazily refreshing on a 401.
  */
 export async function onfireRequest(
@@ -165,7 +165,7 @@ export async function onfireRequest(
   let result = await rawOnfire(path, accessToken, init);
 
   if (result.status === 401 && connection.refreshToken) {
-    logger.info({ connectionId }, "Refreshing OnFire token after 401");
+    logger.info({ connectionId }, "Refreshing Onfire token after 401");
     const refreshed = await refreshAccessToken(connection.refreshToken);
     accessToken = refreshed.access_token;
     await db
@@ -292,14 +292,14 @@ export function mapInvoice(data: unknown): MappedInvoice {
     currency: str(r["currency"]),
     externalInvoiceRef: str(r["external_invoice_ref"]),
     clientEmail: str(r["client_email"]),
-    // OnFire returns the rate card's public ref as `rate_card_ref` on both POST and GET
+    // Onfire returns the rate card's public ref as `rate_card_ref` on both POST and GET
     // (stamped by attach_rate_card_names); mirror it into our rate_card_ref_id column.
     rateCardRefId: str(r["rate_card_ref"]),
   };
 }
 
 /**
- * Map an OnFire InvoiceListResponse envelope ({ invoices, total, ... }) — or a bare
+ * Map an Onfire InvoiceListResponse envelope ({ invoices, total, ... }) — or a bare
  * array — into MappedInvoice[]. Envelope keys are unwrapped by asArray().
  */
 export function mapInvoices(data: unknown): MappedInvoice[] {
@@ -313,7 +313,7 @@ export interface FetchInvoicesResult {
 }
 
 /**
- * Pull this connection's invoices from OnFire (GET /core/partner/invoices/). OnFire
+ * Pull this connection's invoices from Onfire (GET /core/partner/invoices/). Onfire
  * scopes the result to this practitioner AND our Connected App, so it returns exactly
  * the invoices we created — the same set we mirror locally. Used to reconcile/backfill
  * the mirror when a webhook was missed.

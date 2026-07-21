@@ -42,7 +42,7 @@ export function Webhooks() {
               <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center">
                 <Webhook className="w-10 h-10 mb-4 opacity-20" />
                 <p>No webhook events received yet.</p>
-                <p className="text-sm mt-1">Events will appear here when OnFire sends them.</p>
+                <p className="text-sm mt-1">Events will appear here when Onfire sends them.</p>
               </div>
             ) : (
               events?.map((event) => (
@@ -50,7 +50,7 @@ export function Webhooks() {
                   <div className="col-span-2 text-sm text-muted-foreground">
                     {format(new Date(event.receivedAt), "MMM d, HH:mm:ss")}
                   </div>
-                  
+
                   <div className="col-span-3">
                     {event.type ? (
                       <Badge variant="secondary" className="font-mono text-xs font-normal">
@@ -60,7 +60,7 @@ export function Webhooks() {
                       <span className="text-xs text-muted-foreground italic">Unknown</span>
                     )}
                   </div>
-                  
+
                   <div className="col-span-3">
                     {event.routed && event.connectionDisplayName ? (
                       <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function Webhooks() {
                       <span className="text-xs text-muted-foreground italic">Unknown</span>
                     )}
                   </div>
-                  
+
                   <div className="col-span-3 flex flex-col gap-0.5">
                     {event.externalInvoiceRef ? (
                       <span className="text-sm font-mono truncate" title={event.externalInvoiceRef}>
@@ -94,7 +94,7 @@ export function Webhooks() {
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="col-span-1 flex justify-end">
                     {event.routed ? (
                       <Tooltip text="Successfully routed to a practitioner connection">

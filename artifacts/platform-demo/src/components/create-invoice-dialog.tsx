@@ -27,7 +27,7 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
   const [open, setOpen] = useState(false);
   const [rateCardRefId, setRateCardRefId] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  // OnFire requires name, phone and a full billing address on every invoice.
+  // Onfire requires name, phone and a full billing address on every invoice.
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [line1, setLine1] = useState("");

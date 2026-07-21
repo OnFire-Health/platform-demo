@@ -1,9 +1,9 @@
 import { useParams, Link } from "wouter";
 import { useState } from "react";
-import { 
-  useGetConnection, 
-  useListRateCards, 
-  useListInvoices, 
+import {
+  useGetConnection,
+  useListRateCards,
+  useListInvoices,
   useDisconnectConnection,
   useReconcileInvoices,
   getListConnectionsQueryKey,
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   ChevronLeft,
   Unplug,
   CreditCard,
@@ -75,12 +75,12 @@ export function ConnectionDetail() {
       onSuccess: (result) => {
         toast({
           title: "Invoices reconciled",
-          description: `Synced ${result.reconciled} invoice${result.reconciled === 1 ? "" : "s"} from OnFire.`,
+          description: `Synced ${result.reconciled} invoice${result.reconciled === 1 ? "" : "s"} from Onfire.`,
         });
         queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey(id) });
       },
       onError: () => {
-        toast({ variant: "destructive", title: "Error", description: "Failed to reconcile invoices from OnFire." });
+        toast({ variant: "destructive", title: "Error", description: "Failed to reconcile invoices from Onfire." });
       }
     });
   };
@@ -88,7 +88,7 @@ export function ConnectionDetail() {
   const handleDisconnect = () => {
     disconnect.mutate({ id }, {
       onSuccess: () => {
-        toast({ title: "Practitioner disconnected", description: "The OnFire access token has been revoked." });
+        toast({ title: "Practitioner disconnected", description: "The Onfire access token has been revoked." });
         queryClient.invalidateQueries({ queryKey: getGetConnectionQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getListConnectionsQueryKey() });
       },
@@ -156,7 +156,7 @@ export function ConnectionDetail() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Disconnect {connection.displayName}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will revoke the OAuth token and disconnect the practitioner from the platform. 
+                  This will revoke the OAuth token and disconnect the practitioner from the platform.
                   You will no longer be able to create invoices on their behalf.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -221,7 +221,7 @@ export function ConnectionDetail() {
                     <CreditCard className="w-4 h-4" /> Rate Cards
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -229,7 +229,7 @@ export function ConnectionDetail() {
                     className="gap-2"
                     onClick={handleReconcile}
                     disabled={!isActive || reconcile.isPending}
-                    title="Pull invoices from OnFire and re-sync the local mirror"
+                    title="Pull invoices from Onfire and re-sync the local mirror"
                   >
                     <RefreshCw className={`w-4 h-4 ${reconcile.isPending ? "animate-spin" : ""}`} />
                     Reconcile
@@ -292,7 +292,7 @@ export function ConnectionDetail() {
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="ratecards" className="m-0 border-none outline-none">
                 {isLoadingRates ? (
                   <div className="divide-y divide-border">
@@ -306,7 +306,7 @@ export function ConnectionDetail() {
                 ) : rateCards?.length === 0 ? (
                   <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
                     <CreditCard className="w-8 h-8 mb-3 opacity-20" />
-                    <p>No rate cards found in OnFire.</p>
+                    <p>No rate cards found in Onfire.</p>
                     <p className="text-xs mt-1">Practitioner needs to create rate cards in their partner portal.</p>
                   </div>
                 ) : (
