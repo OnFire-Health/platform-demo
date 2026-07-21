@@ -1,4 +1,4 @@
-# Platform Demo — Onfire Multi-Tenant Reference Integration
+# Platform Integration Demo — Onfire Multi-Tenant Reference Integration
 
 A reference implementation of an Onfire **Platform** integration — third-party
 software that hosts many independent practitioners and connects each one to
