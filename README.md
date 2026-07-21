@@ -48,3 +48,8 @@ ONFIRE_OAUTH_SCOPES=            # defaults to "payment-connection offline_access
 ```
 
 More detail on architecture and where things live is in [`replit.md`](./replit.md).
+
+## Build spec
+
+The original requirements this reference integration was built against:
+[`attached_assets/Pasted-...-build-spec.txt`](./attached_assets/Pasted--platform-demo-build-spec-Replit-A-reference-integratio_1781730689458.txt).
