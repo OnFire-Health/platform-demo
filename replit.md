@@ -1,6 +1,6 @@
 # Platform Demo — OnFire Multi-Tenant Reference Integration
 
-A reference "Platform" (in the spirit of Biocanic) that hosts many independent practitioners. Each practitioner connects their own OnFire Health partner account via OAuth (authorization_code) through a single Connected App. The platform lists each practitioner's own rate cards, creates invoices on their behalf, and receives all invoice webhooks at ONE platform receiver that routes each event to the right practitioner by `partner_public_id`.
+A reference "Platform" that hosts many independent practitioners. Each practitioner connects their own OnFire Health partner account via OAuth (authorization_code) through a single Connected App. The platform lists each practitioner's own rate cards, creates invoices on their behalf, and receives all invoice webhooks at ONE platform receiver that routes each event to the right practitioner by `partner_public_id`.
 
 ## Run & Operate
 
