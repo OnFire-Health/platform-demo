@@ -1,0 +1,314 @@
+Add a **Checkout Sessions** loop to this app, alongside the existing invoice loop, for a connected
+practitioner (a `connections` row, viewed at `/connections/:id`). The shape is Stripe Checkout:
+create a Checkout Session server-side, show the payer a **button** to OnFire's hosted page, read
+the result back when they return, and keep local state in sync from `checkout_session.*`
+webhooks that arrive at the receiver this app already has (`POST /api/webhooks/onfire`).
+
+Follow the repo's existing conventions exactly: `lib/api-spec/openapi.yaml` is the source of
+truth for this app's own API (then `pnpm --filter @workspace/api-spec run codegen`), Drizzle
+schema lives in `lib/db/src/schema/` and is applied with `pnpm --filter @workspace/db run push`
+(there are no migration files), OnFire calls go through `onfireRequest(connectionId, path, init)`
+in `artifacts/api-server/src/lib/onfire.ts`, routes live in `artifacts/api-server/src/routes/`,
+and the React console in `artifacts/platform-demo/src/` consumes only the generated hooks from
+`@workspace/api-client-react`. This app's own API is **camelCase**; the OnFire wire is
+**snake_case** — map at the boundary, as `routes/connections.ts` does for invoices.
+
+**Naming rule — read before writing a line.** The OnFire object is a *Checkout Session*. In code,
+always use the full name: `checkoutSession`, `checkout_sessions`, `checkoutSessionPublicId`,
+`CheckoutSessionsTab`. **Never** shorten it to `session` — this app already uses that word for
+the operator's login everywhere (`express-session`, the `operator_sessions` table,
+`routes/session.ts`, `useGetSession`, `req.session`), and the two must not be confusable in a grep.
+
+### 1. Data model (`lib/db/src/schema/checkoutSessions.ts`, export from `schema/index.ts`)
+
+One row per Checkout Session minted through this app. Same style as `invoices.ts`: uuid pk
+`defaultRandom()`, `connection_id` FK `onDelete: "cascade"`, text `amount`, `timestamp(…,
+{ withTimezone: true })`, `$onUpdate` on `updated_at`, a **named** unique constraint.
+
+```
+checkout_sessions
+  id                          uuid pk default gen_random_uuid()
+  connection_id               uuid not null fk -> connections.id on delete cascade
+  client_reference_id         text not null      -- OUR order id; the OnFire idempotency key
+  onfire_id                   text               -- OnFire's UUID `id`
+  public_id                   text unique        -- OnFire's `cs_…` public_id (the id on the redirect + webhooks)
+  payer_url                   text               -- OnFire's hosted page URL; what the button links to
+  rate_card_ref_id            text not null
+  quantity                    integer not null default 1
+  status                      text not null      -- open | complete | expired | cancelled
+  payment_status              text not null      -- unpaid | processing | paid
+  amount                      text               -- decimal string from OnFire, e.g. "150.00"
+  currency                    text               -- e.g. "USD"
+  success_url                 text not null
+  cancel_url                  text not null
+  metadata                    jsonb              -- what we sent; OnFire echoes it verbatim
+  expires_at                  timestamptz
+  completed_at                timestamptz
+  last_event_type             text               -- the most recent checkout_session.* webhook type applied
+  last_create_http_status     integer            -- 201 / 200 / 409 — shown in the UI to prove idempotency
+  created_at                  timestamptz not null default now()
+  updated_at                  timestamptz not null default now()
+
+  unique checkout_sessions_connection_client_reference_unique (connection_id, client_reference_id)
+```
+
+Extend `webhook_events` (`lib/db/src/schema/webhookEvents.ts`) with two nullable columns so the
+log can show the new family: `checkout_session_public_id text` and `metadata jsonb`. Leave
+`connection_id` **without** an FK as it is today (unrouted events must still insert). Add the two
+fields to the `WebhookEvent` schema in `openapi.yaml` too.
+
+### 2. Server — OnFire calls (via `onfireRequest`)
+
+`onfireRequest` returns `{ ok, status, data }` and does **not** throw on a non-2xx — read `status`
+and `data` directly; that is exactly what the idempotency demonstration needs. It throws only for
+`connection_not_found` / `connection_revoked` / a failed token refresh; keep the existing
+try/catch → `502` for those.
+
+**Path strings — copy exactly.** The create route has **no trailing slash**, unlike every other
+OnFire path in this repo (`/core/partner/invoices/`, `/meta/partner-rate-cards/`). Do not add one
+by habit; the slashed form is a redirect, not the route.
+
+```ts
+onfireRequest(connection.id, "/core/partner/checkout-sessions", { method: "POST", body })
+onfireRequest(connection.id, `/core/partner/checkout-sessions/${encodeURIComponent(id)}`)
+```
+
+**Create body** (snake_case, OnFire's `PartnerCheckoutSessionCreate`, `extra="forbid"`):
+
+```json
+{
+  "items": [{ "ref_id": "<rate card refId>", "quantity": 1 }],
+  "client_reference_id": "<our order id>",
+  "success_url": "https://<app origin>/checkout-return?connectionId=<connection.id>",
+  "cancel_url":  "https://<app origin>/checkout-cancelled?connectionId=<connection.id>",
+  "metadata": { "order_id": "<our order id>", "practitioner": "<connection.displayName>" }
+}
+```
+
+Rules OnFire enforces (surface each as the user-facing error, do not pre-validate harder):
+
+- `items` must have **exactly one** entry; `ref_id` is the rate card's string `refId` from the
+  rate-card list; `quantity >= 1`. There is **no price on the wire** — OnFire prices from the
+  practitioner's rate card. Sending `amount` or any other key is a `422`.
+- `success_url` / `cancel_url` must be absolute `https://` URLs with a host. **Our own query
+  string is preserved** — put `connectionId` on it so the return page knows which connection to
+  retrieve with. Do **not** put a `{CHECKOUT_SESSION_ID}` placeholder anywhere; there is no
+  templating, a literal placeholder passes through untouched.
+- `metadata` optional, ≤ 2048 bytes as compact JSON, echoed verbatim on every read and webhook.
+- `expires_at` optional (ISO 8601; 30 min – 30 days ahead; default 24 h). Do not send it.
+- **Omit `client`** (payer email/name/phone). The invoice path sends `client_*` fields; this one
+  must not — the demo has no payer PII and should not invent any.
+- Do not send `agreements` — flag-gated off in every environment.
+
+OnFire's response codes and what to do:
+
+| OnFire | Meaning | Action |
+|---|---|---|
+| `201` | created | upsert the local row from the body; `lastCreateHttpStatus = 201` |
+| `200` | **replayed** — same `client_reference_id`, byte-identical canonical body → the existing Checkout Session | upsert from the body (same `id`/`public_id`); `lastCreateHttpStatus = 200` |
+| `409` | same `client_reference_id`, **different** body — `{"detail":"client_reference_id already used with a different request body"}` | do not touch the row; `lastCreateHttpStatus = 409`; return the `detail` |
+| `422` | validation — `{"detail": "..."}` or Pydantic's list form | return it |
+| `404` | `{"detail":"Rate card not found"}` | return it |
+| `401` | token expired | `onfireRequest` already refreshes once and retries |
+| `403` | scope/consent | return it |
+
+The `201`/`200` body — persist these keys, ignore the rest:
+
+```json
+{
+  "id": "6d5f…-uuid",
+  "public_id": "cs_MOqbx9zX…",
+  "payer_url": "https://dev-payment.onfirehealth.com/checkout/cs_MOqbx9zX…",
+  "status": "open",
+  "payment_status": "unpaid",
+  "amount": "150.00",
+  "currency": "USD",
+  "items": [{ "ref_id": "…", "quantity": 1, "position": 0 }],
+  "client_reference_id": "…",
+  "success_url": "…", "cancel_url": "…",
+  "metadata": { … },
+  "expires_at": "2026-10-02T14:00:00+00:00",
+  "completed_at": null,
+  "created_via": "oauth",
+  "created_at": "…", "updated_at": "…",
+  "partner_id": 51, "connected_app_id": "connected-app-test-…"
+}
+```
+
+`amount` is a **decimal string** — store as text, never parse to float (house style already).
+
+**Retrieve** — `GET /core/partner/checkout-sessions/{id}`. `{id}` is **either** the UUID `id`
+**or** the `cs_…` `public_id`, so the return page retrieves straight off the redirect parameter.
+Same body shape as create. Unknown, cross-tenant and malformed ids are all
+`404 {"detail":"Checkout Session not found"}`. There is **no list endpoint**; the local table is
+the only index.
+
+### 3. This app's API (`openapi.yaml` → codegen → `routes/connections.ts` or a new `routes/checkoutSessions.ts`)
+
+Follow the `/connections/{id}/…` pattern with path param `id` (`ConnectionId`), `requireAuth`
+on every route, and the existing `loadConnection` / "Connection is revoked" preamble.
+
+| operationId | Route | Does |
+|---|---|---|
+| `listCheckoutSessions` | `GET /connections/{id}/checkout-sessions` | local rows for that connection, newest first |
+| `createCheckoutSession` | `POST /connections/{id}/checkout-sessions` | body `{ rateCardRefId, quantity?, clientReferenceId?, metadata? }`. If `clientReferenceId` is blank, generate `pd_cs_<12 random hex>`. Build `success_url`/`cancel_url` from the app origin (§ 6) + `connectionId`. Call OnFire **Create**. On `201`/`200` upsert the local row on `(connection_id, client_reference_id)` **after** the call. Respond **`200 { httpStatus, checkoutSession?, error? }`** for every OnFire outcome (`httpStatus` = OnFire's code; `error` = OnFire's `detail` as a string for 409/422/404/403) so the UI gets it in `onSuccess` and can render the badge. Keep `502 { error }` only for the thrown cases |
+| `replayCheckoutSession` | `POST /connections/{id}/checkout-sessions/{checkoutSessionId}/replay` | body `{ change?: "quantityPlusOne" }`. Re-sends the **identical** create body (same `client_reference_id`, same URLs, same metadata, same quantity) unless `change` is set, in which case `quantity + 1` and nothing else. Same `200 { httpStatus, checkoutSession?, error? }` response. This is the idempotency demonstration: identical → OnFire `200` with the same `public_id`; changed → OnFire `409` |
+| `retrieveCheckoutSession` | `POST /connections/{id}/checkout-sessions/retrieve` | body `{ checkoutSessionId }` — whatever arrived on the redirect (`cs_…`) or a local row's `publicId`. Calls OnFire **Retrieve** with that connection's token, upserts the local row **matched on `public_id`** (create it if this app has no row — the redirect is authoritative; fill `client_reference_id`, `rate_card_ref_id`, `quantity`, URLs, metadata from the response), returns the row |
+
+**Do NOT copy the invoice route's idempotency gate.** `POST /connections/:id/invoices` claims the
+local unique index *before* calling OnFire and short-circuits on conflict without ever calling
+OnFire. For Checkout Sessions the whole point is to let **OnFire** answer `200` vs `409` — call
+OnFire first, upsert afterwards.
+
+New OpenAPI schemas: `CheckoutSession` (camelCase mirror of the table), `CreateCheckoutSessionBody`,
+`ReplayCheckoutSessionBody`, `RetrieveCheckoutSessionBody`, `CheckoutSessionResult`
+(`{ httpStatus: integer, checkoutSession?: CheckoutSession, error?: string }`). Validate request
+bodies with the generated Zod from `@workspace/api-zod`, as `CreateInvoiceBody` is today.
+
+### 4. Webhook receiver — extend `routes/webhooks.ts`, do not fork it
+
+The handler already reads the raw body (`express.raw` mounted ahead of `express.json` in
+`app.ts`), verifies `X-Onfire-Webhook-Signature: t=…,v1=…` with a ±300 s window, parses, and
+dedupes on the envelope `id` via `INSERT … ON CONFLICT DO NOTHING RETURNING`. Keep all of that.
+
+Change the block that reads `data.invoice` so it picks the data block **by `type`**:
+
+```ts
+const isCheckoutSession = type?.startsWith("checkout_session.") ?? false;
+const block = (isCheckoutSession ? data["checkout_session"] : data["invoice"]) ?? {};
+const partnerPublicId = str(block["partner_public_id"]);   // routing key for BOTH families
+```
+
+Routing to a connection by `partner_public_id` is unchanged. In the `webhook_events` insert, for
+the new family set `checkoutSessionPublicId = block.public_id`, `metadata = block.metadata`,
+`status = block.status`, `amount`, `currency`; leave `externalInvoiceRef`/`invoicePublicId` null.
+
+After the dedupe insert succeeds and the event routed, for `checkout_session.*` upsert
+`checkout_sessions` on `public_id = block.public_id`: set `status`, `paymentStatus`, `amount`,
+`currency`, `completedAt`, `expiresAt`, `metadata`, `lastEventType = type`, and — if the row is
+new — `connectionId` (the routed connection), `clientReferenceId = block.client_reference_id`,
+`onfireId = block.id`, `rateCardRefId`/`quantity` from `block.items[0]`. **Order matters: an
+event may arrive before the create response has been persisted.** The upsert, not an update,
+handles that.
+
+The seven event types:
+
+| `type` | `status` / `payment_status` after | Notes |
+|---|---|---|
+| `checkout_session.completed` | `complete` / — | the payer finished the hosted page |
+| `checkout_session.payment_paid` | — / `paid` | card in full lands here synchronously, alongside `completed` |
+| `checkout_session.payment_processing` | — / `processing` | bank transfer initiated; `paid` follows days later |
+| `checkout_session.payment_failed` | unchanged (`open` / `unpaid`) | a card decline; the payer may retry on the same Checkout Session |
+| `checkout_session.expired` | `expired` / — | |
+| `checkout_session.cancelled` | `cancelled` / — | |
+| `checkout_session.agreement_accepted` | unchanged | extra `block.agreement{}`; flag-gated off today — log it, apply nothing |
+
+The `data.checkout_session` block — every key, nothing else:
+
+```json
+{
+  "id": "6d5f…-uuid",
+  "public_id": "cs_…",
+  "partner_public_id": "prt_…",
+  "status": "complete",
+  "payment_status": "paid",
+  "created_via": "oauth",
+  "client_reference_id": "pd_cs_…",
+  "invoice_public_id": null,
+  "amount": "150.00",
+  "currency": "USD",
+  "items": [{ "ref_id": "…", "quantity": 1 }],
+  "expires_at": "…",
+  "completed_at": "…",
+  "metadata": { … }
+}
+```
+
+PHI-minimal by design: no `client{}`, no `success_url`/`cancel_url`, no payment reference. Do
+not expect or require any. Two events arrive for one state change (`completed` + `payment_paid`),
+each its own envelope `id`, in either order — apply both. Retries re-send the **same** envelope
+`id` with a fresh `t=`; the existing dedupe handles it. The HMAC is over the **raw bytes as
+received** — never a re-serialisation (already true).
+
+Reply `2xx` fast. Anything else — including a `3xx` — is a failed attempt; OnFire retries 7
+times over ~33 h, then dead-letters.
+
+> Until this change deploys, `checkout_session.*` deliveries (once OnFire subscribes the endpoint)
+> are already ACKed `200 { received: true, routed: false }` and logged **unrouted** — the handler
+> reads `data.invoice.partner_public_id`, which is absent. That is expected, not a bug.
+
+### 5. UI (`artifacts/platform-demo/src/`, generated hooks only)
+
+- **`ConnectionDetail` (`pages/connection-detail.tsx`)**: add a third tab `checkout-sessions`
+  ("Checkout Sessions") next to `invoices` / `ratecards`, plus a header button **New Checkout
+  Session** that opens a dialog modelled on `create-invoice-dialog.tsx`.
+- **Create dialog:** rate card — copy the inline shadcn `<Select>` over `rateCards.filter(rc => rc.active)`
+  with `value={rc.refId}` from the invoice dialog; quantity (default 1); order id (prefilled
+  `pd_cs_<random>`, editable); two metadata key/value rows (prefill `order_id` = the order id).
+  Submit → `useCreateCheckoutSession`. On success show the `httpStatus` as a badge (`201 created`,
+  `200 replayed`, `409 conflict`, `422`) with `error` text when present, then
+  `invalidateQueries` on `getListCheckoutSessionsQueryKey(id)`.
+- **Tab table:** `useListCheckoutSessions(id, { query: { refetchInterval: 5000 } })` — **this
+  app has no polling today** (`App.tsx` sets `refetchOnWindowFocus: false`); the interval is new
+  and is what makes acceptance #5 visible. Columns: order id, `publicId`, `amount currency`,
+  `status`, `paymentStatus`, last event, last create status, updated. Per row:
+  - **Pay with OnFire** — `<a href={payerUrl} target="_blank" rel="noopener">` styled as a
+    button. **A link the operator clicks, not a server `302`.** OnFire's hosted page likewise
+    returns to `success_url` via a *button* the payer presses, not an automatic redirect, so a
+    payer who closes the tab never comes back — the webhooks are the record of truth, the
+    redirect is only the UX return path. Disable once `status !== "open"`.
+  - **Refresh** — `useRetrieveCheckoutSession` with the row's `publicId`.
+  - **Replay create** and **Replay (qty +1)** — `useReplayCheckoutSession`; show the returned
+    `httpStatus` inline (`200 · same id` vs `409`).
+- **Return page `/checkout-return`** — a `Route` **inside the `Layout` block** of `App.tsx` (the
+  operator must be logged in; the retrieve call is `requireAuth`), not beside `/login`. On load
+  read `connectionId` and `checkout_session_id` from `window.location.search` — OnFire appends
+  `checkout_session_id=cs_…` under **exactly that fixed name**, with `&` after our own params —
+  call `retrieveCheckoutSession`, then render `status`, `paymentStatus`, `amount currency`,
+  `completedAt`, `clientReferenceId`, the echoed `metadata`, and one line of guidance:
+  *"`complete` + `paid` = done; `complete` + `processing` = bank transfer pending settlement;
+  anything else = not paid yet — wait for the webhook."* Link back to `/connections/:id`.
+- **Cancel page `/checkout-cancelled`** — same placement; reads `connectionId` only (OnFire
+  appends nothing to `cancel_url`); says the payer backed out and the Checkout Session is still
+  `open`; links back.
+- **Webhook log (`pages/webhooks.tsx`)**: show `checkout_session.*` rows with the same columns
+  as `invoice.*` rows (type, routed `partnerPublicId`, connection display name, received at) plus
+  `checkoutSessionPublicId` and a compact `metadata` echo. Optionally give it the same 5 s
+  `refetchInterval`.
+
+### 6. App origin for the redirect URLs — no new env var needed
+
+`artifacts/api-server/src/lib/config.ts` already derives the public origin in the private
+`appBaseUrl()` (`https://` + first `REPLIT_DOMAINS`, else `REPLIT_DEV_DOMAIN`) and uses it for the
+default `redirectUri` and `webhookUrl()`. Export it (or add `publicBaseUrl` to `OnFireConfig`)
+and build `success_url`/`cancel_url` from it. Only add an optional `PUBLIC_BASE_URL` override if
+the Replit-provided domain turns out wrong in deployment; do not add it to `missingConfig()`.
+
+Everything else — `ONFIRE_API_BASE`, `ONFIRE_OAUTH_CLIENT_ID/SECRET`,
+`ONFIRE_WEBHOOK_SIGNING_SECRET`, `ONFIRE_PROJECT_*` — is unchanged.
+
+### 7. Finish
+
+`pnpm --filter @workspace/api-spec run codegen` → `pnpm --filter @workspace/db run push` →
+`pnpm run typecheck`. Update `replit.md` ("Where things live", "Architecture decisions") with
+one line each for the new table, routes, and the second webhook family.
+
+### 8. Acceptance (what the dev QA will exercise, in this order)
+
+1. For a connected practitioner, create a Checkout Session from the dialog → `201`, a row with a
+   `cs_…` `publicId`, `open` / `unpaid`, an `amount` priced from the rate card, and a live
+   **Pay with OnFire** button.
+2. **Replay create** → `200`, same `publicId`, no second row. **Replay (qty +1)** → `409` with
+   OnFire's `detail` shown; the row is unchanged.
+3. **Pay with OnFire** → the OnFire hosted page opens on `payerUrl`; pay by card.
+4. Press the hosted page's **Return** → land on
+   `/checkout-return?connectionId=…&checkout_session_id=cs_…`; the page retrieves and shows
+   `complete` / `paid`, `amount`, `completedAt`, the echoed `metadata`.
+5. Meanwhile `checkout_session.completed` and `checkout_session.payment_paid` arrive at
+   `/api/webhooks/onfire`, verify, route to the **right** connection by `partner_public_id`, and
+   the table row flips to `complete` / `paid` within the 5 s poll. Both appear in the webhook log
+   with the `metadata` echo.
+6. A declined card produces `checkout_session.payment_failed`; the row stays `open` / `unpaid`
+   and the button stays live.
+7. A second connected practitioner's Checkout Session webhooks route to *their* connection — the
+   same receiver, separated by `partner_public_id`.
