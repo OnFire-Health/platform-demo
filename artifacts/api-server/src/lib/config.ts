@@ -9,7 +9,7 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
-function appBaseUrl(): string {
+export function appBaseUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) {
     const first = domains.split(",")[0]?.trim();

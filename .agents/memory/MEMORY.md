@@ -1,2 +1,4 @@
 - [connect-pg-simple in bundled server](session-store-bundling.md) — `createTableIfMissing` silently no-ops in esbuild bundles; manage the session table via Drizzle instead.
 - [Codegen drift](codegen-drift.md) — generated API client can lag openapi.yaml (esp. after merges); regenerate before trusting types
+- [Auth cache navigation](auth-cache-navigation.md) — seed successful auth before navigating; inactive invalidated queries can retain unauthenticated state.
+- [Native test bundles](node-test-bundles.md) — test discovery excludes node_modules; pnpm externals must be dependencies of the test-owning package.

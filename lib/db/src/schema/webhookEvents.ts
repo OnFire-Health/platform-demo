@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const webhookEventsTable = pgTable("webhook_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -7,6 +7,8 @@ export const webhookEventsTable = pgTable("webhook_events", {
   partnerPublicId: text("partner_public_id"),
   externalInvoiceRef: text("external_invoice_ref"),
   invoicePublicId: text("invoice_public_id"),
+  checkoutSessionPublicId: text("checkout_session_public_id"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
   status: text("status"),
   amount: text("amount"),
   currency: text("currency"),

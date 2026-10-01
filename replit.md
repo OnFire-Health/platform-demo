@@ -7,6 +7,7 @@ A reference "Platform" that hosts many independent practitioners. Each practitio
 - `pnpm --filter @workspace/api-server run dev` — run the API server (proxied at `/api`)
 - `pnpm --filter @workspace/platform-demo run dev` — run the React/Vite operator console (served at `/`)
 - `pnpm run typecheck` — full typecheck across all packages
+- `pnpm --filter @workspace/api-server run test:checkout-sessions` — isolated Checkout Session API/webhook regression checks on temporary dev-DB fixtures, with mocked Onfire (no live payments)
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Operator login password: `PLATFORM_OPERATOR_PASSWORD` (default `demo`)
@@ -32,6 +33,7 @@ A reference "Platform" that hosts many independent practitioners. Each practitio
 
 - API contract (source of truth): `lib/api-spec/openapi.yaml` → generates `@workspace/api-zod` (Zod) and `@workspace/api-client-react` (hooks)
 - DB schema (source of truth): `lib/db/src/schema/` — `connections`, `oauthStates`, `invoices`, `webhookEvents`, `sessions` (connect-pg-simple store)
+- Checkout Session mirror: `lib/db/src/schema/checkoutSessions.ts`; `routes/checkoutSessions.ts` and `lib/checkoutSessions.ts` implement create, replay, retrieve and tenant-scoped local listing.
 - Backend Onfire logic: `artifacts/api-server/src/lib/{config,jwt,onfire,session}.ts`
 - Routes: `artifacts/api-server/src/routes/{session,platform,connections,oauth,webhooks}.ts`
 - Frontend: `artifacts/platform-demo/src/`
@@ -43,6 +45,8 @@ A reference "Platform" that hosts many independent practitioners. Each practitio
 - **Idempotent invoice creation.** We generate `external_invoice_ref` before calling Onfire and store it; the unique index on `(connection_id, external_invoice_ref)` prevents duplicates on re-POST.
 - **Raw body for webhooks only.** `express.raw` is mounted on `/api/webhooks/onfire` BEFORE `express.json` so the HMAC is computed over exact bytes; body-parser's `req._body` flag makes the json parser skip it.
 - **Tokens never leave the server.** Connection serialization omits access/refresh tokens.
+- **Checkout Session idempotency belongs to Onfire.** Create/replay always calls Onfire first (201 created, 200 replayed, 409 conflict); only afterwards is the mirror upserted. Replay keeps the original body and URLs; prices stay decimal strings and payer data is never collected.
+- **Two webhook families, one receiver.** `invoice.*` uses `data.invoice`; `checkout_session.*` uses `data.checkout_session`. Both route by `partner_public_id`; dedupe and mirror updates are transactional, with Checkout Session upserts handling webhook-before-create races and preserving settled state across out-of-order deliveries.
 
 ## Product
 

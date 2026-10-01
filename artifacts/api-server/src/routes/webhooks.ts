@@ -5,10 +5,12 @@ import {
   db,
   connectionsTable,
   invoicesTable,
+  checkoutSessionsTable,
   webhookEventsTable,
 } from "@workspace/db";
 import { getConfig } from "../lib/config";
 import { requireAuth } from "../middleware/auth";
+import { checkoutSessionRecord, mapCheckoutSession, checkoutSessionLifecycleUpdates } from "../lib/checkoutSessions";
 
 const router: IRouter = Router();
 
@@ -96,15 +98,19 @@ router.post("/webhooks/onfire", async (req, res) => {
     return;
   }
   const type = str(envelope["type"]);
-  const data = (envelope["data"] ?? {}) as Record<string, unknown>;
-  const invoice = (data["invoice"] ?? {}) as Record<string, unknown>;
+  const data = checkoutSessionRecord(envelope["data"]);
+  const isCheckoutSession = type?.startsWith("checkout_session.") ?? false;
+  const block = checkoutSessionRecord(isCheckoutSession ? data["checkout_session"] : data["invoice"]);
 
-  const partnerPublicId = str(invoice["partner_public_id"]);
-  const externalInvoiceRef = str(invoice["external_invoice_ref"]);
-  const invoicePublicId = str(invoice["invoice_public_id"]);
-  const status = str(invoice["status"]);
-  const amount = str(invoice["amount"]);
-  const currency = str(invoice["currency"]);
+  const partnerPublicId = str(block["partner_public_id"]);
+  const externalInvoiceRef = isCheckoutSession ? null : str(block["external_invoice_ref"]);
+  const invoicePublicId = isCheckoutSession ? null : str(block["invoice_public_id"]);
+  const checkoutSessionPublicId = isCheckoutSession ? str(block["public_id"]) : null;
+  const metadata = isCheckoutSession && block["metadata"] != null
+    ? checkoutSessionRecord(block["metadata"]) : null;
+  const status = str(block["status"]);
+  const amount = str(block["amount"]);
+  const currency = str(block["currency"]);
 
   // Route by partner_public_id — the demonstration of multi-tenant separation.
   let connectionId: string | null = null;
@@ -123,47 +129,53 @@ router.post("/webhooks/onfire", async (req, res) => {
   }
   const routed = connectionId !== null;
 
-  // Dedupe on the envelope id (at-least-once delivery).
-  const inserted = await db
-    .insert(webhookEventsTable)
-    .values({
-      envelopeId,
-      type,
-      partnerPublicId,
-      externalInvoiceRef,
-      invoicePublicId,
-      status,
-      amount,
-      currency,
-      connectionId,
-      connectionDisplayName,
-      routed,
-    })
-    .onConflictDoNothing({ target: webhookEventsTable.envelopeId })
-    .returning();
+  // Dedupe and mirror changes are atomic. A failed application must not leave a
+  // dedupe entry that causes the next delivery to skip the unapplied state.
+  const applied = await db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(webhookEventsTable)
+      .values({
+        envelopeId, type, partnerPublicId, externalInvoiceRef, invoicePublicId,
+        checkoutSessionPublicId, metadata, status, amount, currency,
+        connectionId, connectionDisplayName, routed,
+      })
+      .onConflictDoNothing({ target: webhookEventsTable.envelopeId })
+      .returning();
+    if (inserted.length === 0) return false;
 
-  if (inserted.length === 0) {
+    if (connectionId && isCheckoutSession && type !== "checkout_session.agreement_accepted") {
+      const mapped = mapCheckoutSession(block, connectionId, true);
+      await tx.insert(checkoutSessionsTable)
+        .values({ ...mapped, lastEventType: type })
+        .onConflictDoUpdate({
+          target: checkoutSessionsTable.publicId,
+          setWhere: eq(checkoutSessionsTable.connectionId, connectionId),
+          set: {
+            ...checkoutSessionLifecycleUpdates(mapped),
+            amount: mapped.amount ?? undefined,
+            currency: mapped.currency ?? undefined,
+            expiresAt: mapped.expiresAt ?? undefined,
+            metadata: mapped.metadata ?? undefined,
+            lastEventType: type,
+          },
+        });
+    } else if (!isCheckoutSession && connectionId && externalInvoiceRef) {
+      // Existing invoice correlation remains unchanged.
+      await tx.update(invoicesTable)
+        .set({
+          status: status ?? undefined, invoicePublicId: invoicePublicId ?? undefined,
+          amount: amount ?? undefined, currency: currency ?? undefined,
+        })
+        .where(and(eq(invoicesTable.connectionId, connectionId),
+          eq(invoicesTable.externalInvoiceRef, externalInvoiceRef)));
+    }
+    return true;
+  });
+
+  if (!applied) {
     req.log.info({ envelopeId }, "Duplicate webhook ignored");
     res.json({ received: true, duplicate: true });
     return;
-  }
-
-  // Correlate to the local invoice mirror.
-  if (connectionId && externalInvoiceRef) {
-    await db
-      .update(invoicesTable)
-      .set({
-        status: status ?? undefined,
-        invoicePublicId: invoicePublicId ?? undefined,
-        amount: amount ?? undefined,
-        currency: currency ?? undefined,
-      })
-      .where(
-        and(
-          eq(invoicesTable.connectionId, connectionId),
-          eq(invoicesTable.externalInvoiceRef, externalInvoiceRef),
-        ),
-      );
   }
 
   res.json({ received: true, routed });

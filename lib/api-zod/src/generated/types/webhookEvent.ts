@@ -10,6 +10,7 @@ receiver.
 
  * OpenAPI spec version: 0.1.0
  */
+import type { WebhookEventMetadata } from './webhookEventMetadata';
 
 export interface WebhookEvent {
   id: string;
@@ -22,6 +23,10 @@ export interface WebhookEvent {
   externalInvoiceRef?: string | null;
   /** @nullable */
   invoicePublicId?: string | null;
+  /** @nullable */
+  checkoutSessionPublicId?: string | null;
+  /** @nullable */
+  metadata?: WebhookEventMetadata;
   /** @nullable */
   status?: string | null;
   /** @nullable */

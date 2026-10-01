@@ -256,6 +256,159 @@ export const ReconcileInvoicesResponse = zod.object({
 
 
 /**
+ * @summary List the local Checkout Session mirror for a practitioner
+ */
+export const ListCheckoutSessionsParams = zod.object({
+  "id": zod.coerce.string().describe('Local connection id (uuid)')
+})
+
+export const ListCheckoutSessionsResponseItem = zod.object({
+  "id": zod.string(),
+  "connectionId": zod.string(),
+  "clientReferenceId": zod.string(),
+  "onfireId": zod.string().nullable(),
+  "publicId": zod.string().nullable(),
+  "payerUrl": zod.string().nullable(),
+  "rateCardRefId": zod.string(),
+  "quantity": zod.number(),
+  "status": zod.string().describe('open | complete | expired | cancelled'),
+  "paymentStatus": zod.string().describe('unpaid | processing | paid'),
+  "amount": zod.string().nullable().describe('Decimal string; never a floating-point amount'),
+  "currency": zod.string().nullable(),
+  "successUrl": zod.string(),
+  "cancelUrl": zod.string(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "lastEventType": zod.string().nullable(),
+  "lastCreateHttpStatus": zod.number().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListCheckoutSessionsResponse = zod.array(ListCheckoutSessionsResponseItem)
+
+
+/**
+ * @summary Create a hosted Onfire Checkout Session
+ */
+export const CreateCheckoutSessionParams = zod.object({
+  "id": zod.coerce.string().describe('Local connection id (uuid)')
+})
+
+export const CreateCheckoutSessionBody = zod.object({
+  "rateCardRefId": zod.string(),
+  "quantity": zod.number().optional(),
+  "clientReferenceId": zod.string().optional(),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "httpStatus": zod.number(),
+  "checkoutSession": zod.object({
+  "id": zod.string(),
+  "connectionId": zod.string(),
+  "clientReferenceId": zod.string(),
+  "onfireId": zod.string().nullable(),
+  "publicId": zod.string().nullable(),
+  "payerUrl": zod.string().nullable(),
+  "rateCardRefId": zod.string(),
+  "quantity": zod.number(),
+  "status": zod.string().describe('open | complete | expired | cancelled'),
+  "paymentStatus": zod.string().describe('unpaid | processing | paid'),
+  "amount": zod.string().nullable().describe('Decimal string; never a floating-point amount'),
+  "currency": zod.string().nullable(),
+  "successUrl": zod.string(),
+  "cancelUrl": zod.string(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "lastEventType": zod.string().nullable(),
+  "lastCreateHttpStatus": zod.number().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).optional(),
+  "error": zod.string().optional()
+})
+
+
+/**
+ * @summary Demonstrate Onfire Checkout Session idempotency
+ */
+export const ReplayCheckoutSessionParams = zod.object({
+  "id": zod.coerce.string().describe('Local connection id (uuid)'),
+  "checkoutSessionId": zod.coerce.string().describe('Local Checkout Session row id')
+})
+
+export const ReplayCheckoutSessionBody = zod.object({
+  "change": zod.enum(['quantityPlusOne']).optional()
+})
+
+export const ReplayCheckoutSessionResponse = zod.object({
+  "httpStatus": zod.number(),
+  "checkoutSession": zod.object({
+  "id": zod.string(),
+  "connectionId": zod.string(),
+  "clientReferenceId": zod.string(),
+  "onfireId": zod.string().nullable(),
+  "publicId": zod.string().nullable(),
+  "payerUrl": zod.string().nullable(),
+  "rateCardRefId": zod.string(),
+  "quantity": zod.number(),
+  "status": zod.string().describe('open | complete | expired | cancelled'),
+  "paymentStatus": zod.string().describe('unpaid | processing | paid'),
+  "amount": zod.string().nullable().describe('Decimal string; never a floating-point amount'),
+  "currency": zod.string().nullable(),
+  "successUrl": zod.string(),
+  "cancelUrl": zod.string(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "lastEventType": zod.string().nullable(),
+  "lastCreateHttpStatus": zod.number().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).optional(),
+  "error": zod.string().optional()
+})
+
+
+/**
+ * @summary Retrieve a Checkout Session from Onfire and refresh the local mirror
+ */
+export const RetrieveCheckoutSessionParams = zod.object({
+  "id": zod.coerce.string().describe('Local connection id (uuid)')
+})
+
+export const RetrieveCheckoutSessionBody = zod.object({
+  "checkoutSessionId": zod.string()
+})
+
+export const RetrieveCheckoutSessionResponse = zod.object({
+  "id": zod.string(),
+  "connectionId": zod.string(),
+  "clientReferenceId": zod.string(),
+  "onfireId": zod.string().nullable(),
+  "publicId": zod.string().nullable(),
+  "payerUrl": zod.string().nullable(),
+  "rateCardRefId": zod.string(),
+  "quantity": zod.number(),
+  "status": zod.string().describe('open | complete | expired | cancelled'),
+  "paymentStatus": zod.string().describe('unpaid | processing | paid'),
+  "amount": zod.string().nullable().describe('Decimal string; never a floating-point amount'),
+  "currency": zod.string().nullable(),
+  "successUrl": zod.string(),
+  "cancelUrl": zod.string(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "lastEventType": zod.string().nullable(),
+  "lastCreateHttpStatus": zod.number().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
  * Most recent Onfire webhook events received at the single platform receiver, with the practitioner each was routed to.
  * @summary Recent received webhook events
  */
@@ -266,6 +419,8 @@ export const ListWebhookEventsResponseItem = zod.object({
   "partnerPublicId": zod.string().nullish(),
   "externalInvoiceRef": zod.string().nullish(),
   "invoicePublicId": zod.string().nullish(),
+  "checkoutSessionPublicId": zod.string().nullish(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish(),
   "status": zod.string().nullish(),
   "amount": zod.string().nullish(),
   "currency": zod.string().nullish(),

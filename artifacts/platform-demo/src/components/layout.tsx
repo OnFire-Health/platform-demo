@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, Activity, LogOut, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { safeReturnTarget } from "@/lib/return-target";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -13,9 +14,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && (!session?.authenticated || isError)) {
-      setLocation("/login");
+      const target = safeReturnTarget(`${location}${window.location.search}`);
+      setLocation(target ? `/login?next=${encodeURIComponent(target)}` : "/login");
     }
-  }, [session, isLoading, isError, setLocation]);
+  }, [session, isLoading, isError, setLocation, location]);
 
   if (isLoading) {
     return (

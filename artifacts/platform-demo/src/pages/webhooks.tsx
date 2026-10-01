@@ -1,4 +1,4 @@
-import { useListWebhookEvents } from "@workspace/api-client-react";
+import { useListWebhookEvents, getListWebhookEventsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { Activity, Webhook, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function Webhooks() {
-  const { data: events, isLoading } = useListWebhookEvents();
+  const { data: events, isLoading } = useListWebhookEvents({ query: { refetchInterval: 5000, queryKey: getListWebhookEventsQueryKey() } });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -24,7 +24,7 @@ export function Webhooks() {
               <div className="col-span-2">Received</div>
               <div className="col-span-3">Event Type</div>
               <div className="col-span-3">Tenant Identity</div>
-              <div className="col-span-3">Invoice Details</div>
+              <div className="col-span-3">Invoice / Checkout Session</div>
               <div className="col-span-1 text-right">Routed</div>
             </div>
 
@@ -81,7 +81,18 @@ export function Webhooks() {
                   </div>
 
                   <div className="col-span-3 flex flex-col gap-0.5">
-                    {event.externalInvoiceRef ? (
+                    {event.checkoutSessionPublicId ? (
+                      <>
+                        <span className="text-sm font-mono truncate" title={event.checkoutSessionPublicId} data-testid={`text-checkout-session-public-id-${event.id}`}>
+                          {event.checkoutSessionPublicId}
+                        </span>
+                        {event.metadata && Object.keys(event.metadata).length > 0 && (
+                          <span className="text-xs font-mono text-muted-foreground truncate" title={JSON.stringify(event.metadata)} data-testid={`text-metadata-${event.id}`}>
+                            {JSON.stringify(event.metadata)}
+                          </span>
+                        )}
+                      </>
+                    ) : event.externalInvoiceRef ? (
                       <span className="text-sm font-mono truncate" title={event.externalInvoiceRef}>
                         {event.externalInvoiceRef}
                       </span>

@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateInvoiceDialog } from "@/components/create-invoice-dialog";
+import { CreateCheckoutSessionDialog } from "@/components/create-checkout-session-dialog";
+import { CheckoutSessionsTab } from "@/components/checkout-sessions-tab";
 import {
   Table,
   TableBody,
@@ -40,7 +42,8 @@ import {
   CreditCard,
   FileText,
   Activity,
-  RefreshCw
+  RefreshCw,
+  ShoppingCart
 } from "lucide-react";
 import {
   AlertDialog,
@@ -217,12 +220,20 @@ export function ConnectionDetail() {
                   <TabsTrigger value="invoices" className="gap-2">
                     <FileText className="w-4 h-4" /> Invoices
                   </TabsTrigger>
+                  <TabsTrigger value="checkout-sessions" className="gap-2">
+                    <ShoppingCart className="w-4 h-4" /> Checkout Sessions
+                  </TabsTrigger>
                   <TabsTrigger value="ratecards" className="gap-2">
                     <CreditCard className="w-4 h-4" /> Rate Cards
                   </TabsTrigger>
                 </TabsList>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <CreateCheckoutSessionDialog
+                    connectionId={id}
+                    rateCards={rateCards || []}
+                    disabled={!isActive || isLoadingRates}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
@@ -291,6 +302,10 @@ export function ConnectionDetail() {
                     ))
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="checkout-sessions" className="m-0 border-none outline-none overflow-x-auto">
+                <CheckoutSessionsTab connectionId={id} isActive={isActive} />
               </TabsContent>
 
               <TabsContent value="ratecards" className="m-0 border-none outline-none">

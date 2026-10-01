@@ -7,6 +7,7 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
+    "test:checkout-sessions": "esbuild src/lib/checkoutSessions.test.ts --bundle --platform=node --format=cjs --external:express --external:pino --outfile=dist/checkoutSessions.test.cjs && node --test dist/checkoutSessions.test.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

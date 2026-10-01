@@ -154,6 +154,85 @@ export interface InvoiceInput {
   externalClientRef?: string;
 }
 
+/**
+ * @nullable
+ */
+export type CheckoutSessionMetadata = { [key: string]: unknown } | null;
+
+export interface CheckoutSession {
+  id: string;
+  connectionId: string;
+  clientReferenceId: string;
+  /** @nullable */
+  onfireId: string | null;
+  /** @nullable */
+  publicId: string | null;
+  /** @nullable */
+  payerUrl: string | null;
+  rateCardRefId: string;
+  quantity: number;
+  /** open | complete | expired | cancelled */
+  status: string;
+  /** unpaid | processing | paid */
+  paymentStatus: string;
+  /**
+     * Decimal string; never a floating-point amount
+     * @nullable
+     */
+  amount: string | null;
+  /** @nullable */
+  currency: string | null;
+  successUrl: string;
+  cancelUrl: string;
+  /** @nullable */
+  metadata: CheckoutSessionMetadata;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  /** @nullable */
+  lastEventType: string | null;
+  /** @nullable */
+  lastCreateHttpStatus: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CheckoutSessionInputMetadata = { [key: string]: unknown };
+
+export interface CheckoutSessionInput {
+  rateCardRefId: string;
+  quantity?: number;
+  clientReferenceId?: string;
+  metadata?: CheckoutSessionInputMetadata;
+}
+
+export type CheckoutSessionReplayInputChange = typeof CheckoutSessionReplayInputChange[keyof typeof CheckoutSessionReplayInputChange];
+
+
+export const CheckoutSessionReplayInputChange = {
+  quantityPlusOne: 'quantityPlusOne',
+} as const;
+
+export interface CheckoutSessionReplayInput {
+  change?: CheckoutSessionReplayInputChange;
+}
+
+export interface CheckoutSessionRetrieveInput {
+  checkoutSessionId: string;
+}
+
+export interface CheckoutSessionResult {
+  httpStatus: number;
+  checkoutSession?: CheckoutSession;
+  error?: string;
+}
+
+/**
+ * @nullable
+ */
+export type WebhookEventMetadata = { [key: string]: unknown } | null;
+
 export interface WebhookEvent {
   id: string;
   envelopeId: string;
@@ -165,6 +244,10 @@ export interface WebhookEvent {
   externalInvoiceRef?: string | null;
   /** @nullable */
   invoicePublicId?: string | null;
+  /** @nullable */
+  checkoutSessionPublicId?: string | null;
+  /** @nullable */
+  metadata?: WebhookEventMetadata;
   /** @nullable */
   status?: string | null;
   /** @nullable */

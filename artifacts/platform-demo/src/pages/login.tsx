@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { safeReturnTarget } from "@/lib/return-target";
 import { useLocation } from "wouter";
 import { useLogin, getGetSessionQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,9 +25,11 @@ export function Login() {
     login.mutate(
       { data: { password } },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetSessionQueryKey() });
-          setLocation("/");
+        onSuccess: async (operatorState) => {
+          const returnTarget = safeReturnTarget(new URLSearchParams(window.location.search).get("next")) ?? "/";
+          await queryClient.cancelQueries({ queryKey: getGetSessionQueryKey() });
+          queryClient.setQueryData(getGetSessionQueryKey(), operatorState);
+          setLocation(returnTarget);
         },
         onError: () => {
           toast({

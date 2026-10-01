@@ -27,6 +27,11 @@ import type {
 import type {
   AuthorizeInput,
   AuthorizeUrl,
+  CheckoutSession,
+  CheckoutSessionInput,
+  CheckoutSessionReplayInput,
+  CheckoutSessionResult,
+  CheckoutSessionRetrieveInput,
   Connection,
   Error,
   HealthStatus,
@@ -1097,6 +1102,301 @@ export const useReconcileInvoices = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getReconcileInvoicesMutationOptions(options));
+    }
+
+export const getListCheckoutSessionsUrl = (id: string,) => {
+
+
+
+
+  return `/api/connections/${id}/checkout-sessions`
+}
+
+/**
+ * @summary List the local Checkout Session mirror for a practitioner
+ */
+export const listCheckoutSessions = async (id: string, options?: RequestInit): Promise<CheckoutSession[]> => {
+
+  return customFetch<CheckoutSession[]>(getListCheckoutSessionsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCheckoutSessionsQueryKey = (id: string,) => {
+    return [
+    `/api/connections/${id}/checkout-sessions`
+    ] as const;
+    }
+
+
+export const getListCheckoutSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listCheckoutSessions>>, TError = ErrorType<Error>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCheckoutSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCheckoutSessionsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCheckoutSessions>>> = ({ signal }) => listCheckoutSessions(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCheckoutSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCheckoutSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listCheckoutSessions>>>
+export type ListCheckoutSessionsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List the local Checkout Session mirror for a practitioner
+ */
+
+export function useListCheckoutSessions<TData = Awaited<ReturnType<typeof listCheckoutSessions>>, TError = ErrorType<Error>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCheckoutSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCheckoutSessionsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateCheckoutSessionUrl = (id: string,) => {
+
+
+
+
+  return `/api/connections/${id}/checkout-sessions`
+}
+
+/**
+ * @summary Create a hosted Onfire Checkout Session
+ */
+export const createCheckoutSession = async (id: string,
+    checkoutSessionInput: CheckoutSessionInput, options?: RequestInit): Promise<CheckoutSessionResult> => {
+
+  return customFetch<CheckoutSessionResult>(getCreateCheckoutSessionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutSessionInput,)
+  }
+);}
+
+
+
+
+export const getCreateCheckoutSessionMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionInput>}, TContext> => {
+
+const mutationKey = ['createCheckoutSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckoutSession>>, {id: string;data: BodyType<CheckoutSessionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createCheckoutSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckoutSession>>>
+    export type CreateCheckoutSessionMutationBody = BodyType<CheckoutSessionInput>
+    export type CreateCheckoutSessionMutationError = ErrorType<Error>
+
+    /**
+ * @summary Create a hosted Onfire Checkout Session
+ */
+export const useCreateCheckoutSession = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCheckoutSession>>,
+        TError,
+        {id: string;data: BodyType<CheckoutSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCheckoutSessionMutationOptions(options));
+    }
+
+export const getReplayCheckoutSessionUrl = (id: string,
+    checkoutSessionId: string,) => {
+
+
+
+
+  return `/api/connections/${id}/checkout-sessions/${checkoutSessionId}/replay`
+}
+
+/**
+ * @summary Demonstrate Onfire Checkout Session idempotency
+ */
+export const replayCheckoutSession = async (id: string,
+    checkoutSessionId: string,
+    checkoutSessionReplayInput: CheckoutSessionReplayInput, options?: RequestInit): Promise<CheckoutSessionResult> => {
+
+  return customFetch<CheckoutSessionResult>(getReplayCheckoutSessionUrl(id,checkoutSessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutSessionReplayInput,)
+  }
+);}
+
+
+
+
+export const getReplayCheckoutSessionMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replayCheckoutSession>>, TError,{id: string;checkoutSessionId: string;data: BodyType<CheckoutSessionReplayInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replayCheckoutSession>>, TError,{id: string;checkoutSessionId: string;data: BodyType<CheckoutSessionReplayInput>}, TContext> => {
+
+const mutationKey = ['replayCheckoutSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replayCheckoutSession>>, {id: string;checkoutSessionId: string;data: BodyType<CheckoutSessionReplayInput>}> = (props) => {
+          const {id,checkoutSessionId,data} = props ?? {};
+
+          return  replayCheckoutSession(id,checkoutSessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplayCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof replayCheckoutSession>>>
+    export type ReplayCheckoutSessionMutationBody = BodyType<CheckoutSessionReplayInput>
+    export type ReplayCheckoutSessionMutationError = ErrorType<Error>
+
+    /**
+ * @summary Demonstrate Onfire Checkout Session idempotency
+ */
+export const useReplayCheckoutSession = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replayCheckoutSession>>, TError,{id: string;checkoutSessionId: string;data: BodyType<CheckoutSessionReplayInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replayCheckoutSession>>,
+        TError,
+        {id: string;checkoutSessionId: string;data: BodyType<CheckoutSessionReplayInput>},
+        TContext
+      > => {
+      return useMutation(getReplayCheckoutSessionMutationOptions(options));
+    }
+
+export const getRetrieveCheckoutSessionUrl = (id: string,) => {
+
+
+
+
+  return `/api/connections/${id}/checkout-sessions/retrieve`
+}
+
+/**
+ * @summary Retrieve a Checkout Session from Onfire and refresh the local mirror
+ */
+export const retrieveCheckoutSession = async (id: string,
+    checkoutSessionRetrieveInput: CheckoutSessionRetrieveInput, options?: RequestInit): Promise<CheckoutSession> => {
+
+  return customFetch<CheckoutSession>(getRetrieveCheckoutSessionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutSessionRetrieveInput,)
+  }
+);}
+
+
+
+
+export const getRetrieveCheckoutSessionMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retrieveCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionRetrieveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retrieveCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionRetrieveInput>}, TContext> => {
+
+const mutationKey = ['retrieveCheckoutSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retrieveCheckoutSession>>, {id: string;data: BodyType<CheckoutSessionRetrieveInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  retrieveCheckoutSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetrieveCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof retrieveCheckoutSession>>>
+    export type RetrieveCheckoutSessionMutationBody = BodyType<CheckoutSessionRetrieveInput>
+    export type RetrieveCheckoutSessionMutationError = ErrorType<Error>
+
+    /**
+ * @summary Retrieve a Checkout Session from Onfire and refresh the local mirror
+ */
+export const useRetrieveCheckoutSession = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retrieveCheckoutSession>>, TError,{id: string;data: BodyType<CheckoutSessionRetrieveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retrieveCheckoutSession>>,
+        TError,
+        {id: string;data: BodyType<CheckoutSessionRetrieveInput>},
+        TContext
+      > => {
+      return useMutation(getRetrieveCheckoutSessionMutationOptions(options));
     }
 
 export const getListWebhookEventsUrl = () => {

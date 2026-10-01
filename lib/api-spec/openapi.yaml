@@ -321,6 +321,162 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /connections/{id}/checkout-sessions:
+    get:
+      operationId: listCheckoutSessions
+      tags: [checkout-sessions]
+      summary: List the local Checkout Session mirror for a practitioner
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Checkout Sessions, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          description: Connection is revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createCheckoutSession
+      tags: [checkout-sessions]
+      summary: Create a hosted Onfire Checkout Session
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionInput"
+      responses:
+        "200":
+          description: Onfire outcome, including replay and conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResult"
+        "400":
+          description: Invalid input or revoked connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Request failed before an Onfire outcome could be returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}/checkout-sessions/{checkoutSessionId}/replay:
+    post:
+      operationId: replayCheckoutSession
+      tags: [checkout-sessions]
+      summary: Demonstrate Onfire Checkout Session idempotency
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+        - name: checkoutSessionId
+          in: path
+          required: true
+          description: Local Checkout Session row id
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionReplayInput"
+      responses:
+        "200":
+          description: Onfire outcome
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResult"
+        "400":
+          description: Invalid input or revoked connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Connection or Checkout Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Upstream request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connections/{id}/checkout-sessions/retrieve:
+    post:
+      operationId: retrieveCheckoutSession
+      tags: [checkout-sessions]
+      summary: Retrieve a Checkout Session from Onfire and refresh the local mirror
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionRetrieveInput"
+      responses:
+        "200":
+          description: Refreshed Checkout Session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          description: Invalid input or revoked connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Onfire scope or consent error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Connection or Checkout Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Upstream request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /webhook-events:
     get:
       operationId: listWebhookEvents
@@ -601,6 +757,102 @@ components:
         country:
           type: string
 
+    CheckoutSession:
+      type: object
+      required: [id, connectionId, clientReferenceId, onfireId, publicId, payerUrl, rateCardRefId, quantity, status, paymentStatus, amount, currency, successUrl, cancelUrl, metadata, expiresAt, completedAt, lastEventType, lastCreateHttpStatus, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        clientReferenceId:
+          type: string
+        onfireId:
+          type: ["string", "null"]
+        publicId:
+          type: ["string", "null"]
+        payerUrl:
+          type: ["string", "null"]
+        rateCardRefId:
+          type: string
+        quantity:
+          type: integer
+        status:
+          type: string
+          description: open | complete | expired | cancelled
+        paymentStatus:
+          type: string
+          description: unpaid | processing | paid
+        amount:
+          type: ["string", "null"]
+          description: Decimal string; never a floating-point amount
+        currency:
+          type: ["string", "null"]
+        successUrl:
+          type: string
+        cancelUrl:
+          type: string
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        lastEventType:
+          type: ["string", "null"]
+        lastCreateHttpStatus:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Entity-shaped component names avoid colliding with Orval's generated
+    # CreateCheckoutSessionBody / ReplayCheckoutSessionBody / RetrieveCheckoutSessionBody Zod exports.
+    CheckoutSessionInput:
+      type: object
+      required: [rateCardRefId]
+      properties:
+        rateCardRefId:
+          type: string
+        quantity:
+          type: integer
+        clientReferenceId:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CheckoutSessionReplayInput:
+      type: object
+      properties:
+        change:
+          type: string
+          enum: [quantityPlusOne]
+
+    CheckoutSessionRetrieveInput:
+      type: object
+      required: [checkoutSessionId]
+      properties:
+        checkoutSessionId:
+          type: string
+
+    CheckoutSessionResult:
+      type: object
+      required: [httpStatus]
+      properties:
+        httpStatus:
+          type: integer
+        checkoutSession:
+          $ref: "#/components/schemas/CheckoutSession"
+        error:
+          type: string
+
     WebhookEvent:
       type: object
       required:
@@ -621,6 +873,11 @@ components:
           type: ["string", "null"]
         invoicePublicId:
           type: ["string", "null"]
+        checkoutSessionPublicId:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
         status:
           type: ["string", "null"]
         amount:

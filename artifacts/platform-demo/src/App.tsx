@@ -9,6 +9,8 @@ import { Dashboard } from "@/pages/dashboard";
 import { Connections } from "@/pages/connections";
 import { ConnectionDetail } from "@/pages/connection-detail";
 import { Webhooks } from "@/pages/webhooks";
+import { CheckoutReturn } from "@/pages/checkout-return";
+import { CheckoutCancelled } from "@/pages/checkout-cancelled";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +32,8 @@ function Router() {
             <Route path="/connections" component={Connections} />
             <Route path="/connections/:id" component={ConnectionDetail} />
             <Route path="/webhooks" component={Webhooks} />
+            <Route path="/checkout-return" component={CheckoutReturn} />
+            <Route path="/checkout-cancelled" component={CheckoutCancelled} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
