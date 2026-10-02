@@ -93,7 +93,7 @@ export function CheckoutSessionsTab({ connectionId, isActive }: { connectionId: 
       <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
         <ShoppingCart className="w-8 h-8 mb-3 opacity-20" />
         <p>No Checkout Sessions created for this practitioner.</p>
-        <p className="text-xs mt-1">Use New Checkout Session to mint one.</p>
+        <p className="text-xs mt-1">Use <strong>Checkout Session (patient pays now)</strong> to mint one.</p>
       </div>
     );
   }

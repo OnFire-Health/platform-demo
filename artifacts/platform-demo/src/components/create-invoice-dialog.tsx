@@ -107,7 +107,7 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
       <DialogTrigger asChild>
         <Button size="sm" className="gap-2" disabled={disabled || activeRateCards.length === 0}>
           <Plus className="w-4 h-4" />
-          Create Invoice
+          Invoice (bill by email)
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -115,7 +115,8 @@ export function CreateInvoiceDialog({ connectionId, rateCards, disabled }: Creat
           <DialogHeader>
             <DialogTitle>Create Invoice</DialogTitle>
             <DialogDescription>
-              Create an invoice for a patient using one of the practitioner's rate cards.
+              Practitioner-initiated billing: Onfire emails the patient a pay link for one of the
+              practitioner&apos;s rate cards. Use this when the patient is not present to pay now.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

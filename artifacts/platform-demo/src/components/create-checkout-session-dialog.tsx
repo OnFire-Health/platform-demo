@@ -100,7 +100,7 @@ export function CreateCheckoutSessionDialog({ connectionId, rateCards, disabled 
       <DialogTrigger asChild>
         <Button size="sm" className="gap-2" disabled={disabled || activeRateCards.length === 0} data-testid="button-new-checkout-session">
           <Plus className="w-4 h-4" />
-          New Checkout Session
+          Checkout Session (patient pays now)
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[460px]">
@@ -108,7 +108,10 @@ export function CreateCheckoutSessionDialog({ connectionId, rateCards, disabled 
           <DialogHeader>
             <DialogTitle>New Checkout Session</DialogTitle>
             <DialogDescription>
-              Onfire prices the Checkout Session from the rate card. No payer details are collected here.
+              In a real platform this is the patient clicking <em>Pay</em> in your booking flow: your
+              server mints the Checkout Session and sends them to Onfire&apos;s hosted page. Here the
+              operator stands in for the patient. Onfire prices from the rate card; no payer details
+              are collected.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
